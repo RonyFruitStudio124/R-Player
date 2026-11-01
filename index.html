@@ -1,1 +1,2105 @@
-# R-Player
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0a1c">
+<title>R-Player</title>
+<style>
+:root{
+  --bg:#0a0a1c; --bar:#0d0d24; --card:#15152f; --card2:#1e1e3d; --line:#26264d;
+  --txt:#f4f4ff; --mut:#8b8db4; --acc:#7c5cff; --acc2:#b39dff; --accdark:#ffffff;
+  --grad:linear-gradient(135deg,#6a4cff,#a64dff);
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
+  font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Bengali",sans-serif;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input{font:inherit}
+.ic{width:24px;height:24px;fill:currentColor;display:block;pointer-events:none}
+.mut{color:var(--mut)}
+
+/* ---------- Shell ---------- */
+#app{max-width:640px;margin:0 auto;min-height:100dvh;padding-bottom:calc(90px + var(--safe-b))}
+body.has-amini #app{padding-bottom:calc(160px + var(--safe-b))}
+.head{position:sticky;top:0;z-index:30;background:var(--bg);padding-top:var(--safe-t)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 8px 8px 18px}
+.title{font-size:27px;font-weight:700}
+.actions{display:flex;gap:2px}
+.icon-btn{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:var(--txt);transition:background .15s}
+.icon-btn:active{background:rgba(255,255,255,.1)}
+.searchbar{display:flex;align-items:center;gap:6px;margin:2px 14px 8px;padding:2px 4px 2px 16px;background:var(--card);border-radius:14px}
+.searchbar input{flex:1;background:none;border:0;outline:0;color:var(--txt);padding:11px 0}
+.pills{display:flex;gap:10px;padding:6px 14px 12px;overflow-x:auto;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;display:flex;align-items:center;gap:9px;height:50px;padding:0 20px;border-radius:26px;background:#3b3b3b;color:#d4d4d4;font-size:17px;font-weight:500;white-space:nowrap}
+.pill .ic{width:22px;height:22px}
+.pill.home{padding:0 20px}
+.pill.active{background:#27472c;color:#86ea97}
+.pane{display:none}
+.pane.active{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:20;max-width:640px;margin:0 auto;display:flex;background:var(--bar);border-top:1px solid #353535;padding-bottom:var(--safe-b)}
+.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 0 8px;color:#9d9d9d;font-size:13px}
+.bnav button.active{color:var(--acc)}
+.bnav .ic{width:30px;height:30px}
+
+/* ---------- Summary, rows ---------- */
+.summary{display:flex;align-items:center;gap:14px;padding:12px 14px 6px;font-size:16px;letter-spacing:.6px;text-transform:uppercase}
+.summary .sz{color:var(--mut)}
+.summary .sp{flex:1}
+.sbtn{width:42px;height:42px;display:grid;place-items:center;color:#d6d6d6;border-radius:50%}
+.sbtn:active{background:rgba(255,255,255,.1)}
+.recent{display:flex;gap:12px;overflow-x:auto;padding:6px 14px 14px;scrollbar-width:none}
+.recent::-webkit-scrollbar{display:none}
+.rcard{flex:none;width:158px;cursor:pointer}
+.rcard .vthumb{width:158px;height:90px;border-radius:6px}
+.vrow{display:flex;gap:14px;padding:9px 14px;cursor:pointer}
+.vrow:active,.frow:active,.arow:active{background:#2e2e2e}
+.vthumb{position:relative;flex:none;width:150px;height:96px;border-radius:6px;overflow:hidden;background:#121212}
+.vthumb video{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.dur{position:absolute;right:6px;bottom:7px;display:flex;align-items:center;gap:3px;background:rgba(0,0,0,.62);border-radius:5px;padding:1px 6px;font-size:12px;font-variant-numeric:tabular-nums}
+.dur .ic{width:14px;height:14px}
+.dur b{font-weight:500}
+.vprog{position:absolute;left:0;bottom:0;height:3px;background:var(--acc)}
+.vinfo{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between}
+.vtop{display:flex;gap:4px;align-items:flex-start}
+.vtop b{flex:1;font-weight:500;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.dots{flex:none;width:36px;height:36px;display:grid;place-items:center;color:#b8b8b8;margin:-6px -8px 0 0;border-radius:50%}
+.dots:active{background:rgba(255,255,255,.1)}
+.vinfo small{align-self:flex-end;color:var(--mut);font-size:14px}
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:8px 14px}
+.vcell{cursor:pointer}
+.vcell .vthumb{width:100%;height:auto;aspect-ratio:16/10}
+.vcell .vtop{margin-top:6px}
+.vcell .vtop b{-webkit-line-clamp:2;font-size:14px}
+.vcell small{display:block;color:var(--mut);font-size:12.5px}
+.frow{display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer}
+.frow>.ic{width:42px;height:42px;color:var(--acc);flex:none}
+.fmeta{flex:1;min-width:0}
+.fmeta b{display:block;font-weight:500;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeta small{color:var(--mut)}
+.backrow{display:flex;align-items:center;gap:12px;padding:10px 14px;font-size:18px;font-weight:600;min-width:0}
+.backrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{text-align:center;color:var(--mut);padding:70px 24px}
+.empty>.ic{width:60px;height:60px;margin:0 auto 12px;opacity:.5}
+.empty small{display:block;margin-top:4px}
+.empty .btn{margin-top:18px}
+.note{padding:10px 14px;font-size:13px}
+
+/* ---------- Music ---------- */
+.arow{display:flex;align-items:center;gap:14px;padding:9px 14px;cursor:pointer}
+.acover{position:relative;width:54px;height:54px;flex:none;border-radius:10px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#3b3b3b,#2a2a2a);color:var(--acc)}
+.acover.sm{width:42px;height:42px;border-radius:9px}
+.arow.playing .acover{background:var(--acc);color:var(--accdark)}
+.arow.playing .meta b{color:var(--acc)}
+.arow .meta{flex:1;min-width:0}
+.arow .meta b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .meta small{color:var(--mut)}
+.eq{display:none;gap:3px;align-items:flex-end;height:18px}
+.arow.playing .eq{display:flex}
+.arow.playing .acover>.ic{display:none}
+.eq i{width:3px;height:100%;background:var(--accdark);border-radius:2px;transform-origin:bottom;animation:eq .9s infinite ease-in-out}
+.eq i:nth-child(2){animation-delay:.2s}
+.eq i:nth-child(3){animation-delay:.4s}
+.arow.paused .eq i{animation-play-state:paused}
+@keyframes eq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+.amini{position:fixed;left:10px;right:10px;max-width:620px;margin:0 auto;bottom:calc(72px + var(--safe-b));z-index:25;overflow:hidden;
+  display:flex;align-items:center;gap:4px;padding:8px 4px 11px 10px;background:var(--card2);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.55)}
+.amini .ainfo{flex:1;min-width:0;margin-left:6px;cursor:pointer}
+.amini .ainfo b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;font-weight:600}
+.amini .ainfo small{color:var(--mut);font-size:12px;font-variant-numeric:tabular-nums}
+.amini .icon-btn{width:40px;height:40px}
+.amini .pp{background:var(--acc);color:var(--accdark)}
+.amini .aprog{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--acc)}
+.mini{position:fixed;left:10px;right:10px;max-width:620px;margin:0 auto;bottom:calc(72px + var(--safe-b));z-index:25;
+  display:flex;align-items:center;gap:6px;padding:8px 8px 8px 16px;background:var(--card2);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.55)}
+.mini span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+
+/* ---------- Panels, forms ---------- */
+.panel{background:var(--card);border-radius:18px;padding:18px;margin:6px 14px 14px}
+.panel h3{margin:0 0 6px}
+.panel p{margin:0 0 14px;font-size:14px}
+.field{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:13px 14px;outline:0;margin-bottom:10px}
+.field:focus{border-color:var(--acc)}
+.btnrow{display:flex;gap:10px}
+.btn{flex:1;padding:13px;border-radius:12px;font-weight:700;background:var(--acc);color:var(--accdark);text-align:center}
+.btn.ghost{background:var(--card2);color:var(--txt)}
+.btn.sm{flex:none;padding:10px 18px;display:inline-flex;gap:6px;align-items:center;border-radius:22px}
+.btn.sm .ic{width:20px;height:20px}
+.btn:active{filter:brightness(.9)}
+#dlList{padding:0 14px}
+.task{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.tname{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;border-radius:6px;background:var(--bg);margin:10px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc);transition:width .2s}
+.bar.indet i{width:35%!important;animation:ind 1.1s infinite ease-in-out}
+@keyframes ind{0%{margin-left:-35%}100%{margin-left:100%}}
+.tstat{font-size:13px;color:var(--mut);display:flex;justify-content:space-between;gap:10px}
+.tstat button{color:var(--acc);font-weight:700}
+.lockbox{text-align:center;padding:30px 20px}
+.lockbox .big-ic{width:76px;height:76px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:var(--card2);color:var(--acc)}
+.lockbox .big-ic .ic{width:36px;height:36px}
+.pin{text-align:center;letter-spacing:10px;font-size:22px;max-width:240px;margin:10px auto}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.privhead{display:flex;align-items:center;justify-content:space-between;padding:6px 14px}
+.privhead button{color:var(--acc);font-weight:700;padding:8px}
+.plhead{display:flex;align-items:center;justify-content:space-between;padding-right:14px;gap:8px}
+.newpl{display:flex;align-items:center;gap:14px;width:calc(100% - 28px);margin:8px 14px 6px;padding:14px;border-radius:14px;background:var(--card);font-weight:600;color:var(--acc)}
+
+/* ---------- Bottom sheet, dialog, toast ---------- */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0}}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;z-index:101;background:#2f2f2f;border-radius:22px 22px 0 0;
+  padding:8px 8px calc(14px + var(--safe-b));max-height:75dvh;overflow:auto;animation:up .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(100%)}}
+.sheet::before{content:"";display:block;width:40px;height:4px;border-radius:4px;background:#4a4a4a;margin:4px auto 8px}
+.sheet h4,.dialog h4{margin:4px 14px 8px;color:var(--mut);font-size:13px;text-transform:uppercase;letter-spacing:.8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row{display:flex;align-items:center;gap:14px;width:100%;padding:14px;border-radius:12px;text-align:left}
+.row:active{background:var(--card2)}
+.row span{flex:1}
+.row.active{color:var(--acc)}
+.row.note{color:var(--mut);font-size:13px;pointer-events:none}
+.dialog{position:fixed;z-index:101;left:50%;top:38%;transform:translate(-50%,-50%);width:min(92vw,420px);background:#2f2f2f;border-radius:20px;padding:18px;animation:fade .2s}
+.dialog h4{margin:0 0 12px}
+.toast{position:fixed;left:50%;bottom:calc(92px + var(--safe-b));transform:translate(-50%,20px);max-width:88vw;z-index:300;
+  background:rgba(50,50,50,.97);padding:10px 18px;border-radius:24px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+body.has-amini .toast{bottom:calc(150px + var(--safe-b))}
+
+/* ---------- Player ---------- */
+#player{position:fixed;inset:0;z-index:50;background:#000;user-select:none;-webkit-user-select:none;touch-action:manipulation;overflow:hidden}
+.stage{position:absolute;inset:0;display:grid;place-items:center;container-type:size;background:#000}
+#v{width:100%;height:100%;object-fit:contain;background:#000}
+.stage[data-fit="fill"] #v{object-fit:cover}
+.stage[data-fit="stretch"] #v{object-fit:fill}
+.stage[data-fit="16:9"] #v{object-fit:fill;width:min(100cqw,calc(100cqh*16/9));height:min(100cqh,calc(100cqw*9/16))}
+.stage[data-fit="4:3"]  #v{object-fit:fill;width:min(100cqw,calc(100cqh*4/3));height:min(100cqh,calc(100cqw*3/4))}
+.stage[data-fit="21:9"] #v{object-fit:fill;width:min(100cqw,calc(100cqh*21/9));height:min(100cqh,calc(100cqw*9/21))}
+#v::cue{background:rgba(0,0,0,.65);color:#fff;font-size:1.1em}
+.gesture{position:absolute;inset:0;z-index:2;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+.gind{white-space:nowrap;position:absolute;top:14px;left:50%;transform:translate(-50%,-8px);z-index:5;display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:24px;
+  background:rgba(14,14,34,.84);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);color:#fff;font-weight:700;font-size:15px;
+  opacity:0;pointer-events:none;transition:opacity .16s,transform .16s}
+.gind.show{opacity:1;transform:translate(-50%,0)}
+.gind .ic{width:22px;height:22px;color:var(--acc2)}
+.gind .gbar{width:96px;height:5px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden}
+.gind .gbar i{display:block;height:100%;background:var(--grad);border-radius:3px}
+.gind.boost .gbar i{background:linear-gradient(90deg,#ffb020,#ff4f6b)}
+.gind.boost .ic{color:#ffb020}
+.vbox.full .gind{top:calc(16px + var(--safe-t))}
+.ctrl{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none;
+  transition:opacity .25s,visibility .25s}
+.ctrl>*{pointer-events:auto}
+.ctrl-top,.ctrl-bottom{pointer-events:none}
+.ctrl-top button,.seekrow .seek,.seekrow button,.toolrow,.toolrow button{pointer-events:auto}
+.ctrl.hidden{opacity:0;visibility:hidden}
+.ctrl-top{display:flex;align-items:center;gap:2px;padding:calc(8px + var(--safe-t)) 8px 30px;background:linear-gradient(rgba(0,0,0,.8),transparent)}
+.ptitle{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;padding:0 6px}
+.ctrl button.on{color:var(--acc)}
+.ctrl-mid{align-self:center;display:flex;align-items:center;gap:30px;pointer-events:none!important}
+.ctrl-mid button{pointer-events:auto;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(4px)}
+.ctrl-mid .sk{width:58px;height:58px}
+.ctrl-mid .sk .ic{width:36px;height:36px}
+.ctrl-mid .big{width:78px;height:78px;background:var(--acc);color:var(--accdark);box-shadow:0 6px 24px rgba(62,207,91,.4)}
+.ctrl-mid .big .ic{width:42px;height:42px}
+.ctrl-mid button:active{transform:scale(.92)}
+.ctrl-bottom{padding:30px 14px calc(8px + var(--safe-b));background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.seekrow{display:flex;align-items:center;gap:10px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.seek{position:relative;flex:1;height:30px;touch-action:none;cursor:pointer}
+.seek::before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;border-radius:4px;background:rgba(255,255,255,.22)}
+.seek .buf,.seek .prog{position:absolute;left:0;top:50%;height:4px;margin-top:-2px;border-radius:4px;width:0}
+.seek .buf{background:rgba(255,255,255,.38)}
+.seek .prog{background:var(--acc)}
+.seek .knob{position:absolute;top:50%;left:0;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#fff;
+  box-shadow:0 0 0 4px rgba(62,207,91,.35);transition:transform .12s}
+.seek.drag .knob{transform:scale(1.5)}
+.seek .tip{position:absolute;bottom:30px;left:0;transform:translateX(-50%);background:rgba(0,0,0,.85);padding:3px 9px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .12s;pointer-events:none}
+.seek.drag .tip{opacity:1}
+.toolrow{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.tool{min-width:46px;height:46px;border-radius:12px;display:grid;place-items:center}
+.tool:active{background:rgba(255,255,255,.12)}
+.tool.txt{font-weight:800;font-size:15px}
+.unlock{position:absolute;z-index:6;left:50%;bottom:calc(46px + var(--safe-b));transform:translateX(-50%);display:flex;align-items:center;gap:8px;
+  padding:12px 22px;border-radius:30px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.25);font-weight:600;
+  opacity:0;visibility:hidden;transition:.25s}
+.unlock.show{opacity:1;visibility:visible}
+.spinner{position:absolute;z-index:2;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;
+  border:4px solid rgba(255,255,255,.2);border-top-color:var(--acc);animation:spin .8s linear infinite;pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tapfx{position:absolute;z-index:2;top:50%;margin-top:-50px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.18);
+  display:grid;place-items:center;font-weight:700;opacity:0;pointer-events:none}
+.tapfx.l{left:10%}.tapfx.r{right:10%}
+.tapfx.go{animation:tap .5s}
+@keyframes tap{0%{opacity:0;transform:scale(.7)}30%{opacity:1}100%{opacity:0;transform:scale(1.15)}}
+.flash{position:absolute;inset:0;z-index:7;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:flash .35s}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+/* ===== R-Player theme ===== */
+html{background:#0a0a1c}
+body{background:radial-gradient(120% 55% at 50% -10%,#231769 0%,rgba(10,10,28,0) 62%) no-repeat,var(--bg)}
+.head{background:rgba(10,10,28,.9);backdrop-filter:blur(12px)}
+.title.brand{display:flex;align-items:center;gap:10px;font-size:23px;font-weight:800}
+.title.brand .ic{width:32px;height:32px}
+.title.brand span{background:linear-gradient(90deg,#fff,#cdb8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pill{background:#171737;color:#c4c5e6}
+.pill.active{background:rgba(124,92,255,.25);color:#c1b2ff}
+.bnav{background:rgba(13,13,36,.96);backdrop-filter:blur(14px);border-top:1px solid #23234a}
+.bnav button{color:#8b8db4;gap:3px;padding:8px 0 7px}
+.bnav .ico{display:grid;place-items:center;width:46px;height:30px;border-radius:12px}
+.bnav .ico .ic{width:24px;height:24px}
+.bnav button.active{color:#b9a8ff}
+.bnav button.active .ico{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(124,92,255,.5)}
+.btn,.amini .pp,.ctrl-mid .big{background:var(--grad);color:#fff}
+.ctrl-mid .big{box-shadow:0 6px 24px rgba(124,92,255,.5)}
+.seek .prog,.vprog,.bar i,.amini .aprog{background:var(--grad)}
+.seek .knob{box-shadow:0 0 0 4px rgba(124,92,255,.4)}
+.arow .acover{color:#b39dff}
+.arow.playing .acover{background:var(--grad);color:#fff}
+.eq i{background:#fff}
+.toast{background:rgba(32,32,66,.97)}
+.sheet,.dialog{background:#17173a}
+.mini,.amini{background:#1b1b42}
+.vthumb{background:#101028}
+
+/* ===== Home ===== */
+.greet{display:flex;align-items:center;gap:14px;padding:14px 18px 16px}
+.greet small{display:block;color:var(--mut);font-size:12.5px}
+.greet b{display:block;font-size:19px;line-height:1.25}
+.sunc{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;background:radial-gradient(circle at 35% 30%,#ffd37a,#ff9a3c);box-shadow:0 0 0 4px rgba(255,170,60,.22)}
+.sunc .ic{width:30px;height:30px}
+.banner{margin:0 14px 14px;padding:20px 18px;border-radius:20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:linear-gradient(110deg,#4527c9,#7d3df0 60%,#5a46f5);box-shadow:0 10px 30px rgba(90,60,230,.35)}
+.banner b{display:block;font-size:20px}
+.banner small{opacity:.8}
+.bplay{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#ff6aa8,#ff4f8b);box-shadow:0 6px 18px rgba(255,80,140,.45)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px 6px}
+.tile{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;text-align:left;background:var(--card);border:1px solid var(--line)}
+@supports (background:color-mix(in srgb,red,blue)){.tile{background:linear-gradient(135deg,color-mix(in srgb,var(--c) 16%,#12122c),#12122c 78%)}}
+.tic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#fff;background:var(--c);flex:none}
+.tile b{display:block;font-size:15px}
+.tile small{color:var(--mut);font-size:14px}
+.sechead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 8px}
+.sechead b{font-size:17px}
+.sechead button{display:flex;align-items:center;color:#b9a8ff;font-size:13px}
+.sechead .ic{width:18px;height:18px}
+.hrow{display:flex;gap:12px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none}
+.hrow::-webkit-scrollbar{display:none}
+.hcell{flex:none;width:140px;cursor:pointer}
+.hcell .vthumb{width:140px;height:84px;border-radius:12px}
+.hcell b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;font-weight:600;margin-top:7px;line-height:1.3;word-break:break-word}
+.hcell small{color:var(--mut);font-size:12px}
+.hcell .dur .ic{display:none}
+
+/* ===== Splash ===== */
+#splash{position:fixed;inset:0;z-index:1000;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#1b1250 0%,#4a2a8f 30%,#b2559a 52%,#241552 57%,#0c0a26 100%);transition:opacity .5s,visibility .5s}
+#splash.out{opacity:0;visibility:hidden}
+#splash .mnt{position:absolute;left:0;right:0;top:31%;width:100%;height:26%}
+.s-mid{position:relative;text-align:center;margin-top:-14vh}
+.s-logo{width:104px;height:104px;filter:drop-shadow(0 8px 30px rgba(150,90,255,.6))}
+.s-name{font-size:44px;font-weight:800;margin-top:10px;background:linear-gradient(90deg,#fff,#d6c2ff 50%,#9db7ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.s-tag{opacity:.9;margin-top:4px}
+.s-foot{position:absolute;bottom:calc(36px + var(--safe-b));left:0;right:0;text-align:center;font-size:13px;opacity:.85}
+.s-foot i{display:inline-block;width:4px;height:4px;border-radius:50%;background:#a78bfa;margin:0 8px;vertical-align:middle}
+.s-bar{width:120px;height:3px;border-radius:3px;background:rgba(255,255,255,.35);margin:16px auto 0}
+
+/* ===== Library screens ===== */
+.title{font-size:24px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar.hasback{padding-left:6px}
+.topbar.hasback .title{font-size:19px;font-weight:600}
+.title.brand{font-size:23px;font-weight:800}
+.favic{display:inline-grid;vertical-align:middle;color:#ff4f8b;margin-right:10px}
+.favic .ic{width:26px;height:26px}
+.chips{display:flex;gap:10px;padding:6px 14px 12px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 20px;border-radius:20px;background:#171737;color:#c4c5e6;font-weight:600;font-size:14px}
+.chip.active{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(124,92,255,.4)}
+.vrow{display:flex;align-items:center;gap:14px;padding:8px 14px;cursor:pointer}
+.vrow:active{background:rgba(255,255,255,.04)}
+.vrow .vthumb{width:104px;height:68px;border-radius:12px}
+.minfo{flex:1;min-width:0}
+.minfo b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:600;font-size:14.5px;line-height:1.3;word-break:break-word}
+.minfo small{display:block;color:var(--mut);font-size:12.5px;margin-top:3px}
+.vrow .dots{margin:0 -6px 0 0}
+.heartbtn{width:38px;height:38px;display:grid;place-items:center;color:#ff4f8b;flex:none}
+.heartbtn .ic{width:26px;height:26px}
+.vthumb .dur{right:5px;bottom:5px;padding:1px 6px;font-size:11px;font-weight:600;border-radius:6px;background:rgba(10,10,28,.72)}
+.vthumb .dur .ic{display:none}
+.frow{margin:0 14px 10px;padding:12px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line);gap:14px}
+.frow:active{background:var(--card2)}
+.fic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:#fff;flex:none;background:linear-gradient(135deg,var(--c),var(--c2))}
+.fic .ic{width:26px;height:26px}
+.chev{display:grid;color:var(--mut)}
+.chev .ic{width:22px;height:22px}
+.fab{position:fixed;right:max(18px,calc(50% - 302px));bottom:calc(84px + var(--safe-b));width:58px;height:58px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;box-shadow:0 8px 24px rgba(124,92,255,.55);z-index:22}
+.fab .ic{width:30px;height:30px}
+body.has-amini .fab{bottom:calc(150px + var(--safe-b))}
+#pane-folders,#pane-favs,#pane-history{padding-top:8px}
+
+/* ===== History / Explore ===== */
+.favic.hisic{color:#8b5cf6}
+.sfield{display:flex;align-items:center;gap:10px;margin:calc(var(--safe-t) + 14px) 14px 6px;padding:0 6px 0 16px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.sfield>.ic{width:22px;height:22px;color:var(--mut);flex:none}
+.sfield input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--txt);padding:14px 0;font-size:15px}
+.sfield input::placeholder{color:#7d7fa8}
+.sh{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;font-size:16px;font-weight:700}
+.sh em{font-style:normal;color:var(--mut);font-weight:500;font-size:13px}
+.sh button{display:flex;align-items:center;color:#b9a8ff;font-size:13px;font-weight:500}
+.sh .ic{width:18px;height:18px}
+.rchips{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px}
+.rchip{padding:7px 16px;border-radius:18px;background:#1e1e3d;color:#d3d4f2;font-size:13.5px}
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 14px}
+.cat{height:84px;border-radius:16px;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:6px;padding:0 14px;font-weight:600;font-size:14px;background:linear-gradient(135deg,var(--c1),var(--c2))}
+.cat .ic{width:26px;height:26px}
+.catbar{display:flex;align-items:center;gap:8px;padding:6px 14px 10px}
+.catx{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--card2)}
+.catx .ic{width:18px;height:18px}
+
+/* ===== Player ===== */
+#player{background:var(--bg);display:flex;flex-direction:column;padding-top:var(--safe-t)}
+#player.isfull{padding-top:0}
+.vbox{position:relative;flex:none;width:100%;aspect-ratio:16/9;max-height:46dvh;background:#000;overflow:hidden}
+.vbox.full{position:fixed;inset:0;width:auto;aspect-ratio:auto;max-height:none;z-index:60}
+.vbox:not(.full) .ctrl-top{padding:6px 6px 24px}
+.vbox:not(.full) .ptitle{visibility:hidden}
+.vbox:not(.full) .fsonly{display:none}
+.vbox:not(.full) .ctrl-bottom{padding:18px 10px 2px}
+.vbox.full .ctrl-top{padding-top:calc(8px + var(--safe-t))}
+.hiddenctl{display:none}
+.ctrl-mid{gap:12px}
+.ctrl-mid .sk{width:42px;height:42px}
+.ctrl-mid .sk .ic{width:26px;height:26px}
+.ctrl-mid .sk2{width:50px;height:50px}
+.ctrl-mid .sk2 .ic{width:30px;height:30px}
+.ctrl-mid .big{width:66px;height:66px;background:rgba(18,16,46,.55);color:#fff;box-shadow:0 0 0 2px rgba(180,160,255,.55)}
+.ctrl-mid .big .ic{width:38px;height:38px}
+.vbox.full .ctrl-mid{gap:26px}
+.seekrow .fsb{min-width:38px;height:38px}
+.pinfo{flex:1;min-height:0;overflow:auto;padding:16px 14px calc(22px + var(--safe-b))}
+#player.isfull .pinfo{display:none}
+.ptitle2{font-size:19px;font-weight:700;line-height:1.3;word-break:break-word}
+.pmeta{color:var(--mut);font-size:13.5px;margin-top:4px}
+.pactions{display:grid;grid-template-columns:repeat(5,1fr);margin:16px 0 10px;padding:10px 2px;background:var(--card);border:1px solid var(--line);border-radius:18px}
+.pquick{display:grid;grid-template-columns:repeat(5,1fr);margin:0 0 14px;padding:8px 2px;background:var(--card);border:1px solid var(--line);border-radius:18px}
+.pactions button,.pquick button{display:flex;flex-direction:column;align-items:center;gap:6px;color:#d6d7f5;font-size:12px;padding:6px 0}
+.pquick button{font-size:11px;color:#a9abd0}
+.pactions .ic{width:24px;height:24px}
+.pquick .ic{width:21px;height:21px}
+.pactions button.on,.pquick button.on{color:var(--acc2)}
+.pactions button.liked{color:#ff4f8b}
+.nextcard{padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:18px}
+.nexthead{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.apw{display:flex;align-items:center;gap:10px;font-weight:500;font-size:14px;color:#cfd0ee}
+.sw{position:relative;width:46px;height:26px;border-radius:13px;background:#3a3a66;flex:none;transition:.2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--acc)}
+.sw.on::after{left:23px}
+.nextbody{display:flex;align-items:center;gap:12px;margin-top:10px;cursor:pointer}
+.nextbody .vthumb{width:96px;height:62px}
+.nextbody .acover{width:62px;height:62px}
+.nextbody .minfo b{-webkit-line-clamp:1;font-size:14px}
+.nplay{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--grad);color:#fff;flex:none}
+.nonext{color:var(--mut);font-size:13.5px;padding:4px 0}
+
+/* ===== Me / Settings ===== */
+.profile{display:flex;align-items:center;gap:14px;width:calc(100% - 28px);margin:6px 14px 14px;padding:16px;border-radius:20px;text-align:left;background:linear-gradient(120deg,#2a1d7a,#4b2fd0)}
+.profile>.ic{width:22px;height:22px;opacity:.8}
+.avatar{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:24px;font-weight:700;background:var(--grad);box-shadow:0 0 0 3px rgba(255,255,255,.25);flex:none}
+.pinf{flex:1;min-width:0}
+.pinf b{display:block;font-size:18px}
+.pinf small{opacity:.75}
+.merows{margin:0 14px;border-radius:18px;background:var(--card);border:1px solid var(--line);overflow:hidden}
+.merow{display:flex;align-items:center;gap:16px;width:100%;padding:15px 18px;text-align:left;border-bottom:1px solid #1f1f42;font-size:15.5px}
+.merow:last-child{border-bottom:0}
+.merow:active{background:var(--card2)}
+.merow .ic{width:24px;height:24px;color:#c9caf0}
+.merow[data-to="favs"] .ic{color:#ff4f8b}
+.mefoot{margin:22px 14px 0;padding:22px 0 20px;border-radius:22px;text-align:center;background:linear-gradient(135deg,#2b1c80,#5a2fd6 55%,#c04ad6);display:flex;flex-direction:column;align-items:center;gap:2px}
+.mefoot .s-logo{width:44px;height:44px;filter:none}
+.mefoot b{font-size:20px}
+.mefoot small{opacity:.75}
+.setgrp{padding:16px 18px 8px;color:var(--mut);font-size:13px;font-weight:600}
+.setrow{display:flex;align-items:center;gap:14px;width:calc(100% - 28px);margin:0 14px 10px;padding:14px;border-radius:14px;text-align:left;background:var(--card);border:1px solid var(--line)}
+.setrow:active{background:var(--card2)}
+.setrow>.ic{width:22px;height:22px;color:#c9caf0;flex:none}
+.setrow>span:not(.chev){flex:1;font-size:15px}
+.setrow em{font-style:normal;color:var(--mut);font-size:13.5px}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <svg class="mnt" viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true"><path d="M0 300V190L70 120L120 165L190 60L260 150L310 110L400 200V300Z" fill="#1a1245"/></svg>
+  <div class="s-mid"><svg class="s-logo"><use href="#i-logo"/></svg><div class="s-name">R-Player</div><div class="s-tag">More Than Just a Player</div></div>
+  <div class="s-foot">Your Videos <i></i> Your World<div class="s-bar"></div></div>
+</div>
+
+<!-- Icon sprite (Material-style paths) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></symbol>
+  <symbol id="i-cast" viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></symbol>
+  <symbol id="i-rew" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="12" y="16.6" font-size="6.5" font-weight="700" text-anchor="middle" fill="currentColor">10</text></symbol>
+  <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="12" y="16.6" font-size="6.5" font-weight="700" text-anchor="middle" fill="currentColor">10</text></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zM2 13h2a1 1 0 100-2H2a1 1 0 100 2zm18 0h2a1 1 0 100-2h-2a1 1 0 100 2zM11 2v2a1 1 0 102 0V2a1 1 0 10-2 0zm0 18v2a1 1 0 102 0v-2a1 1 0 10-2 0zM5.99 4.58a1 1 0 00-1.41 1.41l1.06 1.06a1 1 0 001.41-1.41L5.99 4.58zm12.37 12.37a1 1 0 00-1.41 1.41l1.06 1.06a1 1 0 001.41-1.41l-1.06-1.06zm1.06-10.96a1 1 0 000-1.41 1 1 0 00-1.41 0l-1.06 1.06a1 1 0 001.41 1.41l1.06-1.06zM7.05 18.36a1 1 0 000-1.41 1 1 0 00-1.41 0l-1.06 1.06a1 1 0 001.41 1.41l1.06-1.06z"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></symbol>
+  <symbol id="i-phones" viewBox="0 0 24 24"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></symbol>
+  <symbol id="i-cc" viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></symbol>
+  <symbol id="i-audio" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></symbol>
+  <symbol id="i-aspect" viewBox="0 0 24 24"><path d="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.99h18v14.02z"/></symbol>
+  <symbol id="i-fs" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></symbol>
+  <symbol id="i-fsx" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></symbol>
+  <symbol id="i-movie" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 14h4v-4H3v4zm0 5h4v-4H3v4zM3 9h4V5H3v4zm5 5h13v-4H8v4zm0 5h13v-4H8v4zM8 5v4h13V5H8z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z"/></symbol>
+  <symbol id="i-sort" viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3zM9 3L5 6.99h3V14h2V6.99h3L9 3z"/></symbol>
+  <symbol id="i-add" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+  <symbol id="i-playlist" viewBox="0 0 24 24"><path d="M19 9H2v2h17V9zm0-4H2v2h17V5zM2 15h13v-2H2v2zm15-2v6l5-3-5-3z"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></symbol>
+  <symbol id="i-heart-o" viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></symbol>
+  <symbol id="i-school" viewBox="0 0 24 24"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/></symbol>
+  <symbol id="i-moreh" viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></symbol>
+  <symbol id="i-tune" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></symbol>
+  <symbol id="i-speed" viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 01-.22 7.58H5.07A8 8 0 0115.58 6.85l1.85-1.23A10 10 0 003.35 19a2 2 0 001.72 1h13.85a2 2 0 001.74-1 10 10 0 00-.27-10.44zm-9.79 6.84a2 2 0 002.83 0l5.66-8.49-8.49 5.66a2 2 0 000 2.83z"/></symbol>
+  <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5fa2"/><stop offset=".5" stop-color="#8f5bff"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs>
+  <symbol id="i-logo" viewBox="0 0 64 64"><path fill="url(#lg)" d="M14 8c0-3 3-4.8 5.6-3.3l34 20c2.5 1.5 2.5 5.1 0 6.6l-34 20C17 52.8 14 51 14 48V8z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></symbol>
+  <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><path d="M12 10.9c-.61 0-1.1.49-1.1 1.1s.49 1.1 1.1 1.1c.61 0 1.1-.49 1.1-1.1s-.49-1.1-1.1-1.1zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2.19 12.19L6 18l3.81-8.19L18 6l-3.81 8.19z"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></symbol>
+</svg>
+
+<!-- ================= LIBRARY APP ================= -->
+<div id="app">
+  <div class="head">
+    <header class="topbar">
+      <button class="icon-btn" id="btnBack" aria-label="Back" data-ico="back" hidden></button>
+      <div class="title" id="secTitle">Video</div>
+      <div class="actions">
+        <button class="icon-btn" id="btnCast" aria-label="Cast" data-ico="cast"></button>
+        <button class="icon-btn" id="btnSearch" aria-label="Search" data-ico="search"></button>
+        <button class="icon-btn" id="btnMenu" aria-label="Menu" data-ico="more"></button>
+      </div>
+    </header>
+    <div class="searchbar" id="searchBar" hidden>
+      <input id="searchInput" type="search" placeholder="Search…" autocomplete="off">
+      <button class="icon-btn" id="searchClose" aria-label="Close search" data-ico="close"></button>
+    </div>
+    <nav class="pills" id="pills">
+      <button class="pill" data-tab="all"><span data-ico="movie"></span>All Videos</button>
+      <button class="pill" data-tab="folders"><span data-ico="folder"></span>All Folders</button>
+      <button class="pill" data-tab="music"><span data-ico="audio"></span>Music</button>
+      <button class="pill" data-tab="playlist"><span data-ico="playlist"></span>Playlist</button>
+      <button class="pill" data-tab="downloader"><span data-ico="down"></span>Downloader</button>
+      <button class="pill" data-tab="privacy"><span data-ico="lock"></span>Privacy</button>
+    </nav>
+  </div>
+
+  <main>
+    <section class="pane active" id="pane-dash"></section>
+    <section class="pane" id="pane-all"></section>
+    <section class="pane" id="pane-favs"></section>
+    <section class="pane" id="pane-home"></section>
+    <section class="pane" id="pane-history"></section>
+    <section class="pane" id="pane-settings"></section>
+    <section class="pane" id="pane-explore">
+      <div class="sfield"><svg class="ic"><use href="#i-search"/></svg>
+        <input id="exIn" type="search" placeholder="Search videos, folders…" autocomplete="off">
+        <button class="icon-btn" id="exSort" aria-label="Sort" data-ico="tune"></button></div>
+      <div id="exBody"></div>
+    </section>
+    <section class="pane" id="pane-me"></section>
+    <section class="pane" id="pane-folders"></section>
+    <section class="pane" id="pane-downloader">
+      <div class="panel">
+        <h3>Downloader</h3>
+        <p class="mut">Paste a direct video link (.mp4, .webm). Stream it right away, or download it into the Downloads folder.</p>
+        <input class="field" id="dlUrl" type="url" inputmode="url" placeholder="https://example.com/video.mp4" autocomplete="off">
+        <div class="btnrow">
+          <button class="btn ghost" id="dlStream">Stream</button>
+          <button class="btn" id="dlGo">Download</button>
+        </div>
+      </div>
+      <div id="dlList"></div>
+    </section>
+    <section class="pane" id="pane-privacy"></section>
+    <section class="pane" id="pane-music"></section>
+    <section class="pane" id="pane-playlist"></section>
+  </main>
+</div>
+
+<nav class="bnav" id="bnav">
+  <button class="active" data-sec="dash"><span class="ico" data-ico="home"></span>Home</button>
+  <button data-sec="video"><span class="ico" data-ico="library"></span>Library</button>
+  <button data-sec="explore"><span class="ico" data-ico="compass"></span>Explore</button>
+  <button data-sec="me"><span class="ico" data-ico="person"></span>Me</button>
+</nav>
+
+<button class="fab" id="fab" aria-label="Add videos" hidden data-ico="add"></button>
+
+<div class="mini" id="mini" hidden>
+  <span id="miniTitle"></span>
+  <button class="icon-btn" id="miniPlay"></button>
+  <button class="icon-btn" id="miniStop" data-ico="close" aria-label="Stop"></button>
+</div>
+
+<!-- Mini audio controller -->
+<div class="amini" id="amini" hidden>
+  <div class="acover sm" data-ico="audio"></div>
+  <div class="ainfo" id="aInfo"><b id="aTitle"></b><small id="aSub">0:00 / 0:00</small></div>
+  <button class="icon-btn" id="aPrev" aria-label="Previous" data-ico="prev"></button>
+  <button class="icon-btn pp" id="aPlay" aria-label="Play or pause"></button>
+  <button class="icon-btn" id="aNext" aria-label="Next" data-ico="next"></button>
+  <button class="icon-btn" id="aClose" aria-label="Close" data-ico="close"></button>
+  <i class="aprog" id="aprog"></i>
+</div>
+
+<input type="file" id="filePicker" accept="video/*,.mkv,.mp4,.m4v,.mov,.webm,.avi,.3gp,.ts,.flv,.wmv,.ogv" multiple hidden>
+<input type="file" id="audioPicker" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac" multiple hidden>
+<input type="file" id="dirPicker" webkitdirectory multiple hidden>
+<input type="file" id="subPicker" accept=".vtt,.srt,text/vtt" hidden>
+<audio id="a" preload="auto"></audio>
+
+<!-- ================= PLAYER ================= -->
+<div id="player" hidden>
+  <div class="vbox" id="vbox">
+    <div class="stage" id="stage" data-fit="fit">
+      <video id="v" playsinline webkit-playsinline preload="auto"></video>
+    </div>
+    <div class="gesture" id="gesture"></div>
+    <div class="spinner" id="spinner" hidden></div>
+    <div class="tapfx l" id="fxL">−10s</div>
+    <div class="tapfx r" id="fxR">+10s</div>
+    <div class="gind" id="gind"><span id="gindIc"></span><span id="gindTxt"></span><span class="gbar" id="gindBar"><i></i></span></div>
+
+    <div class="ctrl" id="ctrl">
+      <div class="ctrl-top">
+        <button class="tool" id="pBack" aria-label="Back" data-ico="back"></button>
+        <div class="ptitle" id="ptitle"></div>
+        <button class="tool" id="btnCC" aria-label="Subtitles" data-ico="cc"></button>
+        <button class="tool" id="btnPMenu" aria-label="More" data-ico="more"></button>
+      </div>
+
+      <div class="ctrl-mid">
+        <button class="sk" id="btnRew" aria-label="Back 10 seconds" data-ico="rew"></button>
+        <button class="sk2" id="btnPrev" aria-label="Previous" data-ico="prev"></button>
+        <button class="big" id="btnPlay" aria-label="Play or pause"></button>
+        <button class="sk2" id="btnNext" aria-label="Next" data-ico="next"></button>
+        <button class="sk" id="btnFwd" aria-label="Forward 10 seconds" data-ico="fwd"></button>
+      </div>
+
+      <div class="ctrl-bottom">
+        <div class="seekrow">
+          <span id="tCur">0:00</span>
+          <div class="seek" id="seek"><div class="buf"></div><div class="prog"></div><div class="knob"></div><div class="tip" id="tip">0:00</div></div>
+          <span id="tDur">0:00</span>
+          <button class="tool fsb" id="btnFS" aria-label="Fullscreen"></button>
+        </div>
+        <div class="toolrow fsonly">
+          <button class="tool" id="btnLock" aria-label="Lock screen" data-ico="lock"></button>
+          <button class="tool" id="btnMute" aria-label="Mute"></button>
+          <button class="tool" id="btnBg" aria-label="Background audio" data-ico="phones"></button>
+          <button class="tool txt" id="btnSpeed" aria-label="Playback speed">1x</button>
+          <button class="tool" id="btnAspect" aria-label="Aspect ratio" data-ico="aspect"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hiddenctl">
+      <button id="btnAT" aria-label="Audio track"></button>
+      <button id="btnShot" aria-label="Screenshot"></button>
+    </div>
+    <button class="unlock" id="btnUnlock"><span data-ico="unlock"></span>Tap to unlock</button>
+    <div class="flash" id="flash"></div>
+  </div>
+
+  <div class="pinfo" id="pinfo">
+    <div class="ptitle2" id="pTitle2"></div>
+    <div class="pmeta" id="pMeta"></div>
+    <div class="pactions">
+      <button id="btnLike"><span class="i2"></span>Like</button>
+      <button id="aDl"><span class="i2" data-ico="down"></span>Download</button>
+      <button id="aSpeed"><span class="i2" data-ico="speed"></span>Speed</button>
+      <button id="aAudio"><span class="i2" data-ico="audio"></span>Audio</button>
+      <button id="aSub"><span class="i2" data-ico="cc"></span>Subtitle</button>
+    </div>
+    <div class="pquick">
+      <button id="qLock"><span class="i2" data-ico="lock"></span>Lock</button>
+      <button id="qMute"><span class="i2"></span>Mute</button>
+      <button id="qBg"><span class="i2" data-ico="phones"></span>Background</button>
+      <button id="qAspect"><span class="i2" data-ico="aspect"></span>Aspect</button>
+      <button id="qShot"><span class="i2" data-ico="cam"></span>Snapshot</button>
+    </div>
+    <div class="nextcard" id="nextCard">
+      <div class="nexthead"><span>Next Video</span><span class="apw">Autoplay<button class="sw" id="apToggle" aria-label="Autoplay"></button></span></div>
+      <div class="nextbody" id="nextBody"></div>
+    </div>
+  </div>
+</div>
+
+<div id="sheetRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= Helpers ================= */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const ico = n => `<svg class="ic"><use href="#i-${n}"/></svg>`;
+const setIco = (el, n) => { el.innerHTML = ico(n); };
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2, '0');
+const fmt = t => {                                   // 1:05 or 1:02:03 (player)
+  if (!isFinite(t) || t < 0) t = 0;
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = Math.floor(t % 60);
+  return (h ? h + ':' + pad(m) : m) + ':' + pad(s);
+};
+const fmtD = t => {                                  // 02:36:21 or 02:21 (badges)
+  if (!isFinite(t) || t < 0) t = 0;
+  const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = Math.floor(t % 60);
+  return h ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+};
+const fmtDate = ts => { const d = new Date(ts); return pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const fmtSize = b => !b ? '0 KB' : b > 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b > 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB';
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }
+};
+const jget = (k, d) => { try { return JSON.parse(store.get(k)) ?? d; } catch { return d; } };
+const jset = (k, v) => store.set(k, JSON.stringify(v));
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+$$('[data-ico]').forEach(el => setIco(el, el.dataset.ico));
+
+/* ================= Data ================= */
+const VIDEO_RE = /\.(mp4|m4v|mkv|webm|mov|avi|3gp|ts|flv|wmv|mpg|mpeg)$/i;
+const AUDIO_RE = /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|weba)$/i;
+const isVideoFile = f => f.type.startsWith('video/') || VIDEO_RE.test(f.name);
+const isAudioFile = f => f.type.startsWith('audio/') || AUDIO_RE.test(f.name);
+const folderOf = f => { const p = (f.webkitRelativePath || '').split('/'); return p.length > 1 ? p[p.length - 2] : 'Device'; };
+
+const BASE = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
+const lib = [
+  { id: 's1', name: 'Big Buck Bunny',  src: BASE + 'BigBuckBunny.mp4',  folder: 'Samples', remote: true },
+  { id: 's2', name: 'Elephants Dream', src: BASE + 'ElephantsDream.mp4', folder: 'Samples', remote: true },
+  { id: 's3', name: 'Sintel',          src: BASE + 'Sintel.mp4',         folder: 'Samples', remote: true },
+  { id: 's4', name: 'Tears of Steel',  src: BASE + 'TearsOfSteel.mp4',   folder: 'Samples', remote: true },
+].map((v, i) => ({ ...v, ext: 'mp4', added: Date.now() - i * 1000, key: 'v:' + v.name + ':0' }));
+const audioLib = [];
+
+/* ================= Saved library (IndexedDB): videos & music survive a reload ================= */
+let dbp;
+const dbOpen = () => dbp ||= new Promise((res, rej) => {
+  if (!window.indexedDB) return rej(new Error('no indexedDB'));
+  const r = indexedDB.open('vibeplay', 1);
+  r.onupgradeneeded = () => { r.result.createObjectStore('items'); r.result.createObjectStore('blobs'); };
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+const idb = (stores, mode, fn) => dbOpen().then(db => new Promise((res, rej) => {
+  const t = db.transaction(stores, mode), out = fn(t);
+  t.oncomplete = () => res(out && typeof out === 'object' && 'result' in out ? out.result : out);
+  t.onerror = t.onabort = () => rej(t.error);
+}));
+const dbKey = it => it.remote ? 'r:' + it.src : it.key + '|' + it.folder;
+let roomWarn = false, askedPersist = false;
+function noRoom(it) {
+  if (roomWarn) return; roomWarn = true; setTimeout(() => roomWarn = false, 5000);
+  toast('Not enough storage to keep "' + it.name + '". It will be gone after a reload.');
+}
+async function saveItem(it, kind, blob) {
+  if (settings.keepLib === false) return;
+  it._saved = true;
+  try {
+    if (blob && navigator.storage && navigator.storage.estimate) {
+      const e = await navigator.storage.estimate();
+      if (e.quota && e.quota - (e.usage || 0) < blob.size + 64 * 1048576) { it._saved = false; return noRoom(it); }
+    }
+    const k = dbKey(it);
+    const meta = { k, kind, name: it.name, folder: it.folder, size: it.size, mtime: it.mtime, ext: it.ext, added: it.added,
+      priv: !!it.priv, dur: it.dur, remote: !!it.remote, src: it.remote ? it.src : undefined };
+    await idb(['items', 'blobs'], 'readwrite', t => { if (blob) t.objectStore('blobs').put(blob, k); t.objectStore('items').put(meta, k); });
+    if (!askedPersist && navigator.storage && navigator.storage.persist) { askedPersist = true; navigator.storage.persist().catch(() => {}); }
+  } catch (e) { it._saved = false; noRoom(it); }
+}
+function updateSaved(it, patch) {
+  if (!it._saved) return;
+  const k = dbKey(it);
+  idb(['items'], 'readwrite', t => { const s = t.objectStore('items'), g = s.get(k); g.onsuccess = () => g.result && s.put({ ...g.result, ...patch }, k); }).catch(() => {});
+}
+function dropSaved(it) {
+  if (!it._saved) return;
+  const k = dbKey(it); it._saved = false;
+  idb(['items', 'blobs'], 'readwrite', t => { t.objectStore('items').delete(k); t.objectStore('blobs').delete(k); }).catch(() => {});
+}
+async function libBytes() {
+  try { const m = await idb(['items'], 'readonly', t => t.objectStore('items').getAll()); return m.reduce((n, x) => n + (x.remote ? 0 : x.size || 0), 0); } catch { return 0; }
+}
+async function clearSaved() {
+  try { await idb(['items', 'blobs'], 'readwrite', t => { t.objectStore('items').clear(); t.objectStore('blobs').clear(); }); } catch {}
+  if (P.cur && P.cur._saved) stopPlayback();
+  if (A.cur && A.cur._saved) closeAudio();
+  for (let i = lib.length - 1; i >= 0; i--) if (lib[i]._saved) lib.splice(i, 1);
+  for (let i = audioLib.length - 1; i >= 0; i--) if (audioLib[i]._saved) audioLib.splice(i, 1);
+  toast('Saved library cleared'); render();
+}
+async function restoreLib() {
+  let metas;
+  try { metas = await idb(['items'], 'readonly', t => t.objectStore('items').getAll()); } catch { return; }
+  if (!metas || !metas.length) return;
+  metas.sort((a, b) => (a.added || 0) - (b.added || 0));
+  let n = 0;
+  for (const m of metas) {
+    let src = m.src;
+    if (!m.remote) {
+      let blob; try { blob = await idb(['blobs'], 'readonly', t => t.objectStore('blobs').get(m.k)); } catch {}
+      if (!blob) continue; src = URL.createObjectURL(blob);
+    }
+    const isA = m.kind === 'a', list = isA ? audioLib : lib;
+    const key = (isA ? 'a:' : 'v:') + m.name + ':' + (m.size || 0);
+    if (list.some(x => x.key === key && x.folder === m.folder)) continue;
+    const it = { id: uid(), name: m.name, src, folder: m.folder, size: m.size, mtime: m.mtime, ext: m.ext, added: m.added, priv: m.priv, dur: m.dur, remote: m.remote, key, _saved: true };
+    list.push(it); n++;
+    if (isA && !it.dur) {
+      const probe = new Audio(); probe.preload = 'metadata'; probe.src = src;
+      probe.onloadedmetadata = () => { it.dur = probe.duration; updateSaved(it, { dur: it.dur }); };
+    }
+  }
+  if (n) render();
+}
+
+const ui = jget('np_ui', {});
+const state = {
+  sec: 'dash', tab: 'downloader', fmt: 'all', q: '', cat: null, folder: null, plOpen: null, query: '', unlocked: false,
+  sortBy: ui.sortBy || 'date', desc: ui.desc ?? true, view: ui.view || 'list', _recents: [],
+};
+const saveUi = () => jset('np_ui', { sortBy: state.sortBy, desc: state.desc, view: state.view });
+
+function addItem(o) {
+  const { _blob, ...rest } = o;
+  const it = { id: uid(), added: Date.now(), ...rest };
+  it.key = 'v:' + it.name + ':' + (it.size || 0);
+  lib.push(it);
+  if (it.remote || _blob) saveItem(it, 'v', _blob);
+  return it;
+}
+function addVideoFile(f) {
+  const name = f.name.replace(/\.[^.]+$/, ''), folder = folderOf(f), key = 'v:' + name + ':' + f.size;
+  if (lib.some(x => x.key === key && x.folder === folder)) return false;     // skip duplicates
+  addItem({ _blob: f, name, src: URL.createObjectURL(f), folder, size: f.size, mtime: f.lastModified, ext: (f.name.match(/\.([a-z0-9]+)$/i) || [])[1] });
+  return true;
+}
+function addAudioFiles(files) {
+  let n = 0;
+  [...files].forEach(f => {
+    if (!isAudioFile(f)) return;
+    const name = f.name.replace(/\.[^.]+$/, ''), folder = folderOf(f), key = 'a:' + name + ':' + f.size;
+    if (audioLib.some(x => x.key === key)) return;
+    const it = { id: uid(), name, src: URL.createObjectURL(f), size: f.size, folder, mtime: f.lastModified, added: Date.now(), key };
+    audioLib.push(it); n++; saveItem(it, 'a', f);
+    const probe = new Audio(); probe.preload = 'metadata'; probe.src = it.src;       // read duration
+    probe.onloadedmetadata = () => {
+      it.dur = probe.duration; updateSaved(it, { dur: it.dur });
+      const s = $(`.arow[data-id="${it.id}"] small`); if (s) s.textContent = audioSub(it);
+    };
+  });
+  return n;
+}
+
+/* watch history / resume info (saved per file: name + size) */
+const getMeta = it => { try { return JSON.parse(store.get('np_m:' + it.key) || '{}'); } catch { return {}; } };
+const setMeta = (it, o) => store.set('np_m:' + it.key, JSON.stringify({ ...getMeta(it), ...o }));
+const durOf = it => it.dur || getMeta(it).d || 0;
+const watchPct = it => { const m = getMeta(it); return m.p && m.d ? Math.min(100, m.p / m.d * 100) : 0; };
+
+/* sorting */
+const CMP = {
+  name: (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }),
+  date: (a, b) => (a.mtime || a.added) - (b.mtime || b.added),
+  size: (a, b) => (a.size || 0) - (b.size || 0),
+  dur:  (a, b) => durOf(a) - durOf(b),
+};
+const sorted = arr => [...arr].sort((x, y) => (state.desc ? -1 : 1) * CMP[state.sortBy](x, y));
+const matches = it => it.name.toLowerCase().includes(state.query);
+const visibleVideos = () => sorted(lib.filter(v => !v.priv && matches(v)));
+const audioVisible = () => sorted(audioLib.filter(matches));
+const audioSub = a => [a.dur ? fmtD(a.dur) : '', fmtSize(a.size)].filter(Boolean).join(' · ');
+
+/* ================= Navigation ================= */
+function go(sec, tab, push = true) {
+  if (push && sec && sec !== state.sec && sec !== 'dash') history.pushState({ nav: 1 }, '');
+  const onPriv = state.sec === 'video' && state.tab === 'privacy';
+  const toPriv = (sec || state.sec) === 'video' && (tab || state.tab) === 'privacy';
+  if (onPriv && !toPriv) state.unlocked = false;         // auto-lock when leaving Privacy
+  if (sec) state.sec = sec;
+  if (tab) state.tab = tab;
+  render();
+  window.scrollTo(0, 0);
+}
+$$('.pill').forEach(p => p.onclick = () => {
+  state.folder = null; const t = p.dataset.tab;
+  (t === 'all' || t === 'folders' || t === 'music' || t === 'playlist') ? go(t) : go('video', t);
+});
+$$('#bnav button').forEach(b => b.onclick = () => {
+  const t = b.dataset.sec;
+  if (t === 'video') { state.folder = null; state.plOpen = null; return go('all'); }
+  go(t);
+});
+$('#btnBack').onclick = () => {
+  if (state.sec === 'settings') return go('me');
+  if (state.sec === 'folders' && state.folder) { state.folder = null; return render(); }
+  if (state.sec === 'playlist' && state.plOpen) { state.plOpen = null; return render(); }
+  go('dash');
+};
+
+function render() {
+  const { sec, tab } = state, key = sec === 'video' ? tab : sec;
+  const root = ['dash', 'explore', 'me', 'favs', 'history'].includes(sec);
+  const tools = sec === 'video' || sec === 'music' || sec === 'playlist';
+  const st = $('#secTitle');
+  st.className = sec === 'dash' ? 'title brand' : 'title';
+  if (sec === 'dash') st.innerHTML = ico('logo') + '<span>R-Player</span>';
+  else if (sec === 'favs') st.innerHTML = `<span class="favic">${ico('heart')}</span>Favorites`;
+  else if (sec === 'history') st.innerHTML = `<span class="favic hisic">${ico('clock')}</span>History`;
+  else st.textContent = pageTitle();
+  $('#btnBack').hidden = root;
+  $('.head').hidden = sec === 'explore';
+  $('.topbar').classList.toggle('hasback', !root);
+  $('#btnCast').hidden = true;
+  $('#pills').hidden = !tools;
+  $('#fab').hidden = !(sec === 'all' || sec === 'music');
+  $$('.pill').forEach(p => p.classList.toggle('active', p.dataset.tab === key));
+  $$('#bnav button').forEach(b => b.classList.toggle('active', b.dataset.sec === (sec === 'settings' ? 'me' : ['dash', 'explore', 'me'].includes(sec) ? sec : 'video')));
+  $$('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + key));
+  ({ dash: renderDash, all: renderAll, folders: renderFolders, favs: renderFavs, history: renderHistory, privacy: renderPrivacy, music: renderMusic, playlist: renderPlaylist, explore: renderExplore, me: renderMe, settings: renderSettings, downloader() {} })[key]();
+}
+const TITLES = { all: 'All Videos', folders: 'Folders', music: 'Music', playlist: 'Playlists', explore: 'Explore', me: 'Me', downloader: 'Downloader', privacy: 'Private', settings: 'Settings' };
+function pageTitle() {
+  const { sec, tab } = state;
+  if (sec === 'folders' && state.folder) return state.folder;
+  if (sec === 'playlist' && state.plOpen) return (playlists.find(p => p.id === state.plOpen) || {}).name || 'Playlists';
+  return TITLES[sec === 'video' ? tab : sec] || '';
+}
+
+$('#btnSearch').onclick = () => { go('explore'); setTimeout(() => { const i = $('#exIn'); if (i) i.focus(); }, 80); };
+$('#searchClose').onclick = () => { $('#searchBar').hidden = true; state.query = ''; $('#searchInput').value = ''; render(); };
+$('#searchInput').oninput = e => { state.query = e.target.value.trim().toLowerCase(); render(); };
+
+$('#btnCast').onclick = () => {
+  const vd = $('#v');
+  if (!vd.getAttribute('src')) return toast('Play a video first, then tap Cast');
+  if (vd.remote && vd.remote.prompt) vd.remote.prompt().catch(e => toast(e.name === 'NotFoundError' ? 'No cast devices found' : 'Cast cancelled'));
+  else toast('Casting is not supported in this browser');
+};
+$('#btnMenu').onclick = () => {
+  const items = [];
+  if (state.sec === 'history') items.push({ icon: 'trash', label: 'Clear history', fn: () => clearHistory() });
+  if (state.sec === 'all' || (state.sec === 'folders' && state.folder)) items.push(
+    { icon: 'sort', label: 'Sort by…', fn: () => sortSheet() },
+    { icon: state.view === 'list' ? 'grid' : 'list', label: state.view === 'list' ? 'Grid view' : 'List view', fn: () => doAct('view') });
+  items.push(
+    { icon: 'movie',  label: 'Add video files', fn: () => $('#filePicker').click() },
+    { icon: 'audio',  label: 'Add audio files', fn: () => $('#audioPicker').click() },
+    { icon: 'folder', label: 'Add a folder',    fn: () => $('#dirPicker').click() },
+    { icon: 'cast',   label: 'Cast to device',  fn: () => $('#btnCast').click() },
+    { icon: 'audio',  label: 'Music',           fn: () => go('music') },
+    { icon: 'playlist', label: 'Playlists',     fn: () => go('playlist') },
+    { icon: 'down',   label: 'Downloader',      fn: () => go('video', 'downloader') },
+    { icon: 'lock',   label: 'Private folder',  fn: () => go('video', 'privacy') });
+  openSheet('Menu', items);
+};
+
+/* ================= Sheets & dialogs ================= */
+function openSheet(title, items) {
+  const root = $('#sheetRoot');
+  root.innerHTML = `<div class="backdrop"></div><div class="sheet"><h4>${esc(title)}</h4>${items.map((it, i) =>
+    `<button class="row ${it.active ? 'active' : ''} ${it.note ? 'note' : ''}" data-i="${i}">${it.icon ? ico(it.icon) : ''}<span>${esc(it.label)}</span>${it.active ? ico('check') : ''}</button>`).join('')}</div>`;
+  P.sheetOpen = true; clearTimeout(P.hideTimer);
+  $('.backdrop', root).onclick = closeSheet;
+  $('.sheet', root).onclick = e => {
+    const b = e.target.closest('.row'); if (!b || b.classList.contains('note')) return;
+    closeSheet(); items[+b.dataset.i].fn?.();
+  };
+}
+function closeSheet() {
+  $('#sheetRoot').innerHTML = ''; P.sheetOpen = false;
+  if (!$('#player').hidden) showCtrl();
+}
+function askText(title, placeholder, value, cb) {
+  const root = $('#sheetRoot');
+  root.innerHTML = `<div class="backdrop"></div><div class="dialog"><h4>${esc(title)}</h4>
+    <input class="field" id="askIn" placeholder="${esc(placeholder)}" value="${esc(value)}" maxlength="60" autocomplete="off">
+    <div class="btnrow"><button class="btn ghost" data-x>Cancel</button><button class="btn" data-ok>OK</button></div></div>`;
+  const inp = $('#askIn', root), ok = () => { const val = inp.value.trim(); if (!val) return; closeSheet(); cb(val); };
+  $('.backdrop', root).onclick = closeSheet;
+  $('[data-x]', root).onclick = closeSheet; $('[data-ok]', root).onclick = ok;
+  inp.onkeydown = e => { if (e.key === 'Enter') ok(); };
+  setTimeout(() => { inp.focus(); inp.select(); }, 60);
+}
+function sortSheet() {
+  const set = k => () => { state.sortBy = k; saveUi(); render(); };
+  openSheet('Sort by', [
+    { label: 'Name',        active: state.sortBy === 'name', fn: set('name') },
+    { label: 'Date',        active: state.sortBy === 'date', fn: set('date') },
+    { label: 'Size',        active: state.sortBy === 'size', fn: set('size') },
+    { label: 'Length',      active: state.sortBy === 'dur',  fn: set('dur') },
+    { icon: 'sort', label: 'Descending order', active: state.desc, fn: () => { state.desc = !state.desc; saveUi(); render(); } },
+  ]);
+}
+function addSheet() {
+  const items = [
+    { icon: 'movie',  label: 'Add video files', fn: () => $('#filePicker').click() },
+    { icon: 'audio',  label: 'Add audio files', fn: () => $('#audioPicker').click() },
+    { icon: 'folder', label: 'Add a folder',    fn: () => $('#dirPicker').click() },
+  ];
+  if (state.sec === 'music') items.unshift(items.splice(1, 1)[0]);
+  openSheet('Add to library', items);
+}
+
+/* ================= Video lists ================= */
+const heightOf = it => it.h || getMeta(it).h || 0;
+const extOfItem = it => (it.ext || 'video').toUpperCase();
+const resLabel = it => { const h = heightOf(it); return h >= 2160 ? '4K' : h >= 1080 ? '1080p' : h >= 720 ? 'HD' : extOfItem(it); };
+const sizeOf = it => it.size ? fmtSize(it.size) : 'Online';
+const durTxt = it => durOf(it) ? fmtD(durOf(it)) : '--:--';
+const metaText = (it, k) => k === 'ds' ? `${durTxt(it)} • ${sizeOf(it)}` : k === 'sr' ? `${sizeOf(it)} • ${resLabel(it)}` : `${sizeOf(it)} • ${durTxt(it)}`;
+const STD_FMTS = ['MP4', 'MKV', 'MOV', 'AVI'];
+
+/* favorites (kept in the browser, matched by name + size) */
+let favs = new Set(jget('np_favs', []));
+const isFav = it => favs.has(it.key);
+function toggleFav(it) { isFav(it) ? favs.delete(it.key) : favs.add(it.key); jset('np_favs', [...favs]); }
+const favList = () => sorted(lib.filter(v => !v.priv && isFav(v) && matches(v)));
+const allList = () => sorted(lib.filter(v => !v.priv && matches(v) && (state.fmt === 'all' || extOfItem(v) === state.fmt)));
+
+function thumbHTML(it, kind) {
+  const k = kind === 'res' ? 'res' : 'dur', pc = watchPct(it);
+  return `<div class="vthumb"><video muted playsinline preload="metadata" data-src="${esc(it.src)}#t=1" data-vid="${it.id}"></video>
+    <span class="dur" data-k="${k}"><b>${esc(k === 'res' ? resLabel(it) : durTxt(it))}</b></span>${pc ? `<i class="vprog" style="width:${pc}%"></i>` : ''}</div>`;
+}
+const dotsBtn = (it, o) => `<button class="dots" ${o.rm ? `data-prm="${esc(o.rm)}"` : `data-more="${it.id}"`} aria-label="More">${ico('more')}</button>`;
+const vrow = (it, o = {}) => {
+  const bk = o.dur ? 'dur' : 'res', mk = o.dur ? 'ds' : 'sd';
+  return `<div class="vrow" data-id="${it.id}" ${o.pi != null ? `data-pi="${o.pi}"` : ''}>${thumbHTML(it, bk)}
+    <div class="minfo"><b>${esc(it.name)}</b><small data-k="${mk}">${esc(metaText(it, mk))}</small></div>
+    ${o.heart ? `<button class="heartbtn" data-unfav="${it.id}" aria-label="Remove from favorites">${ico('heart')}</button>` : ''}${dotsBtn(it, o)}</div>`;
+};
+const vcell = it => `<div class="vcell" data-id="${it.id}">${thumbHTML(it, 'res')}
+  <div class="vtop"><b>${esc(it.name)}</b>${dotsBtn(it, {})}</div><small data-k="sd">${esc(metaText(it, 'sd'))}</small></div>`;
+const listHTML = items => state.view === 'grid' ? `<div class="vgrid">${items.map(vcell).join('')}</div>` : items.map(it => vrow(it)).join('');
+const summaryHTML = (count, label, size, showView) =>
+  `<div class="summary"><span>${count} ${label}</span><span class="sz">${fmtSize(size)}</span><span class="sp"></span>
+   ${showView ? `<button class="sbtn" data-act="view" aria-label="View">${ico(state.view)}</button>` : ''}
+   <button class="sbtn" data-act="sort" aria-label="Sort">${ico('sort')}</button>
+   <button class="sbtn" data-act="add" aria-label="Add">${ico('add')}</button></div>`;
+const emptyHTML = (icon, title, sub, btn) =>
+  `<div class="empty">${ico(icon)}<div>${title}</div><small>${sub}</small>${btn ? `<button class="btn sm" data-act="add">${ico('add')}Add</button>` : ''}</div>`;
+
+/* lazy thumbnails: only load video previews that scroll into view */
+const io = 'IntersectionObserver' in window
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); e.target.src = e.target.dataset.src; } }), { rootMargin: '400px' })
+  : null;
+function hydrateThumbs(root) {
+  $$('video[data-src]', root).forEach(vd => {
+    const it = lib.find(x => x.id === vd.dataset.vid);
+    vd.onloadedmetadata = () => {
+      if (!it || !isFinite(vd.duration)) return;
+      it.dur = vd.duration; it.h = vd.videoHeight;
+      setMeta(it, { d: vd.duration, h: vd.videoHeight });
+      const card = vd.closest('[data-id]'), bd = $('.dur', vd.parentElement);
+      if (bd) $('b', bd).textContent = bd.dataset.k === 'res' ? resLabel(it) : fmtD(vd.duration);
+      const sm = card && $('small[data-k]', card); if (sm) sm.textContent = metaText(it, sm.dataset.k);
+    };
+    if (io) io.observe(vd); else vd.src = vd.dataset.src;
+  });
+}
+
+/* ---- Screen: All Videos ---- */
+function renderAll() {
+  const el = $('#pane-all'), vids = lib.filter(v => !v.priv);
+  if (!vids.length) { el.innerHTML = emptyHTML('movie', 'No videos yet', 'Add videos or a whole folder from your phone', true); return; }
+  const extra = [...new Set(vids.map(extOfItem))].filter(x => !STD_FMTS.includes(x));
+  const items = allList();
+  el.innerHTML = `<div class="chips">${['all', ...STD_FMTS, ...extra].map(f =>
+    `<button class="chip ${state.fmt === f ? 'active' : ''}" data-fmt="${f}">${f === 'all' ? 'All' : esc(f)}</button>`).join('')}</div>` +
+    (items.length ? listHTML(items) : emptyHTML('search', 'No videos found', state.fmt === 'all' ? 'Try a different search' : 'No ' + state.fmt + ' files in your list'));
+  hydrateThumbs(el);
+}
+
+/* ---- Screen: Folders ---- */
+const FCOL = [['#4facfe', '#2b6cf0'], ['#34d399', '#0e9f6e'], ['#f472b6', '#db2777'], ['#fbbf24', '#ea8a0c'], ['#fb7185', '#e11d48'], ['#2dd4bf', '#0f9d93'], ['#a78bfa', '#6d4cf5']];
+const hashStr = t => { let h = 0; for (const c of t) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+function renderFolders() {
+  const el = $('#pane-folders');
+  if (state.folder) {
+    const items = sorted(lib.filter(v => !v.priv && v.folder === state.folder && matches(v)));
+    el.innerHTML = items.length ? listHTML(items) : emptyHTML('folder', 'No videos here', '');
+    hydrateThumbs(el); return;
+  }
+  const groups = {};
+  lib.filter(v => !v.priv && matches(v)).forEach(v => (groups[v.folder] ||= []).push(v));
+  const names = Object.keys(groups).sort((x, y) => x.localeCompare(y));
+  el.innerHTML = names.length ? names.map((n, i) => {
+    const g = groups[n], sz = g.reduce((t, v) => t + (v.size || 0), 0), c = FCOL[i % FCOL.length];
+    return `<div class="frow" data-folder="${esc(n)}" style="--c:${c[0]};--c2:${c[1]}"><div class="fic">${ico('folder')}</div>
+      <div class="fmeta"><b>${esc(n)}</b><small>${g.length} video${g.length > 1 ? 's' : ''}${sz ? ' • ' + fmtSize(sz) : ''}</small></div><span class="chev">${ico('chev')}</span></div>`;
+  }).join('') : emptyHTML('folder', 'No folders yet', 'Add a folder from your phone', true);
+}
+
+/* ---- Screen: Favorites ---- */
+function renderFavs() {
+  const el = $('#pane-favs'), items = favList();
+  el.innerHTML = items.length ? items.map(v => vrow(v, { dur: true, heart: true })).join('')
+    : emptyHTML('heart', 'No favorites yet', 'Open ⋮ on a video and choose “Add to favorites”');
+  hydrateThumbs(el);
+}
+
+function itemMenu(item) {
+  const fav = isFav(item);
+  openSheet(item.name, [
+    { icon: 'play', label: 'Play', fn: () => startQueue([{ k: 'v', it: item }], 0) },
+    { icon: 'heart', label: fav ? 'Remove from favorites' : 'Add to favorites', fn: () => { toggleFav(item); render(); toast(fav ? 'Removed from favorites' : 'Added to favorites'); } },
+    { icon: 'playlist', label: 'Add to playlist', fn: () => addToPlaylist(item) },
+    ...(getMeta(item).t ? [{ icon: 'clock', label: 'Remove from history', fn: () => { setMeta(item, { t: 0 }); render(); toast('Removed from history'); } }] : []),
+    item.priv
+      ? { icon: 'unlock', label: 'Remove from Private', fn: () => { item.priv = false; updateSaved(item, { priv: false }); render(); toast('Moved back to folders'); } }
+      : { icon: 'lock', label: 'Move to Private', fn: () => {
+          if (!store.get('np_pin')) { toast('Create a PIN in the Privacy tab first'); return go('video', 'privacy'); }
+          item.priv = true; updateSaved(item, { priv: true }); render(); toast('Moved to Private'); } },
+    { icon: 'trash', label: 'Remove from list', fn: () => {
+        if (P.cur === item) stopPlayback();
+        dropSaved(item); lib.splice(lib.indexOf(item), 1); render(); } },
+  ]);
+}
+function playFrom(it, paneId, ctx) {
+  let list;
+  if (ctx === 'recent') list = state._recents;
+  else if (paneId === 'pane-all') list = allList();
+  else if (paneId === 'pane-folders') list = sorted(lib.filter(x => !x.priv && x.folder === state.folder && matches(x)));
+  else if (paneId === 'pane-favs') list = favList();
+  else if (paneId === 'pane-history') list = historyList();
+  else if (paneId === 'pane-explore') list = exploreVideos();
+  else if (paneId === 'pane-privacy') list = sorted(lib.filter(x => x.priv));
+  else list = visibleVideos();
+  let i = list.indexOf(it); if (i < 0) { list = [it]; i = 0; }
+  startQueue(list.map(x => ({ k: 'v', it: x })), i);
+}
+function doAct(act) {
+  if (act === 'view') { state.view = state.view === 'list' ? 'grid' : 'list'; saveUi(); render(); }
+  else if (act === 'sort') sortSheet();
+  else if (act === 'add') addSheet();
+}
+function onVideoClick(e) {
+  const paneId = e.currentTarget.id, t = e.target;
+  const act = t.closest('[data-act]')?.dataset.act; if (act) return doAct(act);
+  const fm = t.closest('[data-fmt]'); if (fm) { state.fmt = fm.dataset.fmt; return renderAll(); }
+  const uf = t.closest('[data-unfav]');
+  if (uf) { e.stopPropagation(); const it = lib.find(x => x.id === uf.dataset.unfav); if (it) { toggleFav(it); toast('Removed from favorites'); render(); } return; }
+  const more = t.closest('[data-more]');
+  if (more) { e.stopPropagation(); return itemMenu(lib.find(x => x.id === more.dataset.more)); }
+  const fol = t.closest('[data-folder]');
+  if (fol) { state.folder = fol.dataset.folder; return render(); }
+  const c = t.closest('[data-id]');
+  if (c) { const it = lib.find(x => x.id === c.dataset.id); if (it) playFrom(it, paneId, c.dataset.ctx); }
+}
+$('#pane-all').onclick = onVideoClick;
+$('#pane-folders').onclick = onVideoClick;
+$('#pane-favs').onclick = onVideoClick;
+$('#fab').onclick = () => addSheet();
+
+/* ---- add files ---- */
+function showAfterAdd(sec) { state.sec = sec === 'video' ? 'all' : sec; render(); }
+$('#filePicker').onchange = e => {
+  const files = [...e.target.files]; e.target.value = '';
+  const n = files.filter(addVideoFile).length;
+  if (n) { showAfterAdd('video'); toast(n + ' video' + (n > 1 ? 's' : '') + ' added'); } else toast('No new videos found');
+};
+$('#audioPicker').onchange = e => {
+  const n = addAudioFiles(e.target.files); e.target.value = '';
+  if (n) { showAfterAdd('music'); toast(n + ' song' + (n > 1 ? 's' : '') + ' added'); } else toast('No new audio files found');
+};
+$('#dirPicker').onchange = e => {
+  const files = [...e.target.files]; e.target.value = '';
+  const nv = files.filter(isVideoFile).filter(addVideoFile).length, na = addAudioFiles(files.filter(isAudioFile));
+  if (nv || na) { showAfterAdd(nv ? 'video' : 'music'); toast(`${nv} video${nv === 1 ? '' : 's'}, ${na} song${na === 1 ? '' : 's'} added`); }
+  else toast('No videos or songs found in that folder');
+};
+
+/* ================= Home (R-Player) ================= */
+const getName = () => store.get('np_name') || 'Tanbin';
+const sizeStr = it => it.size ? fmtSize(it.size) : 'Online';
+function renderDash() {
+  const el = $('#pane-dash'), vids = lib.filter(v => !v.priv);
+  const hr = new Date().getHours(), part = hr < 12 ? 'Morning' : hr < 17 ? 'Afternoon' : 'Evening';
+  const recent = [...vids].sort((a, b) => b.added - a.added).slice(0, 10);
+  state._recents = recent;
+  const folders = new Set(vids.map(v => v.folder)).size;
+  const hist = vids.filter(v => getMeta(v).t).length, favCount = vids.filter(v => isFav(v)).length;
+  const tile = (to, label, n, c, icon) =>
+    `<button class="tile" data-go="${to}" style="--c:${c}"><span class="tic">${ico(icon)}</span><span><b>${label}</b><small>${n}</small></span></button>`;
+  el.innerHTML = `
+    <div class="greet"><div class="sunc">${ico(hr >= 18 || hr < 5 ? 'moon' : 'sun')}</div>
+      <div><small>Good ${part},</small><b>${esc(getName())}</b><small>Keep watching. Keep growing.</small></div></div>
+    <div class="banner" data-go="all"><div><b>Explore Your Videos</b><small>Movies • Music • Memories</small></div><span class="bplay">${ico('play')}</span></div>
+    <div class="tiles">${tile('all', 'All Videos', vids.length, '#3b82f6', 'play')}${tile('folders', 'Folders', folders, '#10b981', 'folder')}${tile('favs', 'Favorites', favCount, '#ec4899', 'heart')}${tile('history', 'History', hist, '#f59e0b', 'clock')}</div>
+    <div class="sechead"><b>Recently Added</b><button data-go="all">See All ${ico('chev')}</button></div>
+    ${recent.length ? `<div class="hrow">${recent.map(v => `<div class="hcell" data-id="${v.id}" data-ctx="recent">${thumbHTML(v, false)}<b>${esc(v.name)}</b><small data-k="sr">${esc(metaText(v, 'sr'))}</small></div>`).join('')}</div>`
+      : `<div class="empty">${ico('movie')}<div>No videos yet</div><small>Open Library and tap + to add videos</small></div>`}`;
+  hydrateThumbs(el);
+}
+$('#pane-dash').onclick = e => {
+  const g = e.target.closest('[data-go]');
+  if (g) {
+    const t = g.dataset.go;
+    if (t === 'all') return go('all');
+    if (t === 'folders') { state.folder = null; return go('folders'); }
+    if (t === 'favs') return go('favs');
+    if (t === 'history') return go('history');
+    return;
+  }
+  onVideoClick(e);
+};
+function renderSoon() {
+  const me = state.sec === 'me';
+  $('#pane-' + state.sec).innerHTML = `<div class="empty">${ico(me ? 'person' : 'compass')}<div>${me ? 'Me' : 'Explore'}</div><small>This screen comes in a later step</small></div>`;
+}
+
+/* ---- Screen: History ---- */
+const historyList = () => lib.filter(v => !v.priv && getMeta(v).t).sort((a, b) => getMeta(b).t - getMeta(a).t).slice(0, 200);
+function renderHistory() {
+  const el = $('#pane-history'), items = historyList();
+  el.innerHTML = items.length ? items.map(v => vrow(v, { dur: true })).join('')
+    : emptyHTML('clock', 'No history yet', 'Videos you play will show up here');
+  hydrateThumbs(el);
+}
+function clearHistory() { lib.forEach(v => { if (getMeta(v).t) setMeta(v, { t: 0 }); }); render(); toast('History cleared'); }
+$('#pane-history').onclick = onVideoClick;
+
+/* ---- Screen: Search / Explore ---- */
+const CATS = [
+  { id: 'movies', label: 'Movies', icon: 'movie', c: ['#e11d48', '#9f1239'], test: v => durOf(v) >= 2400 || /movie|film|blu-?ray|web-?dl|webrip|hdrip|dual|\b(720p|1080p)\b/i.test(v.name) },
+  { id: 'music', label: 'Music', icon: 'audio', c: ['#a855f7', '#6d28d9'] },
+  { id: 'vlogs', label: 'Vlogs', icon: 'cam', c: ['#2563eb', '#1d4ed8'], test: v => /vlog|travel|trip|tour/i.test(v.name) },
+  { id: 'sports', label: 'Sports', icon: 'trophy', c: ['#16a34a', '#166534'], test: v => /sport|match|cricket|football|goal|highlights|bpl|ipl/i.test(v.name) },
+  { id: 'education', label: 'Education', icon: 'school', c: ['#ea8a0c', '#c2410c'], test: v => /lecture|class|tutorial|course|lesson|study|chapter|exam|bcs|math|physics|economics/i.test(v.name) },
+  { id: 'others', label: 'Others', icon: 'moreh', c: ['#475569', '#334155'] },
+];
+const catTest = c => c.id === 'others' ? (v => !CATS.some(k => k.test && k.test(v))) : c.test;
+const recentSearches = () => jget('np_rs', []);
+function saveRecent(q) {
+  q = (q || '').trim(); if (q.length < 2) return;
+  jset('np_rs', [q, ...recentSearches().filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, 8));
+}
+const trendList = () => lib.filter(v => !v.priv).sort((a, b) => (getMeta(b).c || 0) - (getMeta(a).c || 0) || b.added - a.added).slice(0, 8);
+function exploreVideos() {
+  const vids = lib.filter(v => !v.priv), q = state.q.trim().toLowerCase();
+  if (q) return sorted(vids.filter(v => v.name.toLowerCase().includes(q) || v.folder.toLowerCase().includes(q)));
+  if (state.cat) { const c = CATS.find(x => x.id === state.cat); return c ? sorted(vids.filter(catTest(c))) : []; }
+  return trendList();
+}
+function renderExplore() {
+  const inp = $('#exIn'); if (document.activeElement !== inp) inp.value = state.q;
+  renderExploreBody();
+}
+function renderExploreBody() {
+  const el = $('#exBody'), q = state.q.trim().toLowerCase();
+  if (q) {
+    const vs = exploreVideos(), as = sorted(audioLib.filter(a => a.name.toLowerCase().includes(q)));
+    state._exAudio = as;
+    el.innerHTML = (vs.length ? `<div class="sh"><span>Videos</span><em>${vs.length}</em></div>${vs.map(v => vrow(v)).join('')}` : '') +
+      (as.length ? `<div class="sh"><span>Songs</span><em>${as.length}</em></div>${as.map(a => arow(a)).join('')}` : '') +
+      (!vs.length && !as.length ? emptyHTML('search', 'No results', `Nothing matches “${esc(state.q.trim())}”`) : '');
+    hydrateThumbs(el); return;
+  }
+  if (state.cat) {
+    const c = CATS.find(x => x.id === state.cat), vs = exploreVideos();
+    el.innerHTML = `<div class="catbar"><span class="chip active">${esc(c.label)}</span><button class="catx" data-cat="" aria-label="Clear">${ico('close')}</button></div>` +
+      (vs.length ? vs.map(v => vrow(v)).join('') : emptyHTML(c.icon, 'Nothing in ' + esc(c.label), 'Videos are grouped by file name and length'));
+    hydrateThumbs(el); return;
+  }
+  const rs = recentSearches(), tr = trendList();
+  state._recents = tr;
+  el.innerHTML =
+    (rs.length ? `<div class="sh"><span>Recent Searches</span><button data-rsclear>Clear</button></div><div class="rchips">${rs.map(x => `<button class="rchip" data-rs="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : '') +
+    `<div class="sh"><span>Categories</span></div><div class="cats">${CATS.map(c => `<button class="cat" data-cat="${c.id}" style="--c1:${c.c[0]};--c2:${c.c[1]}">${ico(c.icon)}<span>${c.label}</span></button>`).join('')}</div>` +
+    (tr.length ? `<div class="sh"><span>Trending</span><button data-go="all">See All ${ico('chev')}</button></div><div class="hrow">${tr.map(v => `<div class="hcell" data-id="${v.id}" data-ctx="recent">${thumbHTML(v, 'dur')}<b>${esc(v.name)}</b><small data-k="sr">${esc(metaText(v, 'sr'))}</small></div>`).join('')}</div>` : '');
+  hydrateThumbs(el);
+}
+$('#exIn').oninput = e => { state.q = e.target.value; state.cat = null; renderExploreBody(); };
+$('#exIn').onkeydown = e => { if (e.key === 'Enter') { saveRecent(state.q); e.target.blur(); } };
+$('#exSort').onclick = () => sortSheet();
+$('#pane-explore').onclick = e => {
+  const t = e.target;
+  if (t.closest('.sfield')) return;
+  const cat = t.closest('[data-cat]');
+  if (cat) { const id = cat.dataset.cat; if (id === 'music') return go('music'); state.cat = id || null; return renderExploreBody(); }
+  const rs = t.closest('[data-rs]'); if (rs) { state.q = rs.dataset.rs; $('#exIn').value = state.q; return renderExploreBody(); }
+  if (t.closest('[data-rsclear]')) { jset('np_rs', []); return renderExploreBody(); }
+  const g = t.closest('[data-go]'); if (g) { state.cat = null; state.q = ''; return go(g.dataset.go); }
+  const am = t.closest('[data-amore]'); if (am) { e.stopPropagation(); return audioMenu(audioLib.find(x => x.id === am.dataset.amore)); }
+  const row = t.closest('.arow');
+  if (row) {
+    saveRecent(state.q);
+    const list = state._exAudio || [], it = list.find(x => x.id === row.dataset.id);
+    if (it) startQueue(list.map(x => ({ k: 'a', it: x })), list.indexOf(it));
+    return;
+  }
+  saveRecent(state.q);
+  onVideoClick(e);
+};
+
+/* ---- Screen: Me + Settings ---- */
+const settings = Object.assign({ autoRotate: true, remember: true, keepLib: true }, jget('np_settings', {}));
+const saveSettings = () => jset('np_settings', settings);
+function cacheBytes() {
+  let n = 0;
+  try { for (const k of Object.keys(localStorage)) if (k.startsWith('np_m:')) n += k.length + (localStorage.getItem(k) || '').length; } catch {}
+  return n * 2;
+}
+function clearWatchData() {
+  try { Object.keys(localStorage).filter(k => k.startsWith('np_m:')).forEach(k => localStorage.removeItem(k)); } catch {}
+  lib.forEach(v => { delete v.dur; delete v.h; });
+  toast('Saved positions and history cleared'); render();
+}
+const aboutSheet = () => openSheet('About R-Player', [
+  { label: 'R-Player 1.0.0', note: true },
+  { label: 'A video and music player that runs in your browser. It plays the formats your browser can decode.', note: true },
+  { label: 'Tip: double-tap the left or right side of a video to skip 10 seconds. Swipe up/down on the right for volume (keep going past 100% for a boost up to 200%), on the left for brightness, and press and hold for 2x speed.', note: true },
+]);
+const policySheet = () => openSheet('Privacy Policy', [
+  { label: 'Your videos, music, favorites, history, playlists and PIN are saved only in this browser (you can turn this off in Settings). Nothing is uploaded. The online sample videos load from Google servers.', note: true },
+]);
+
+function renderMe() {
+  const nm = getName();
+  const rows = [['dash', 'home', 'Home'], ['all', 'library', 'Library'], ['favs', 'heart', 'Favorites'], ['history', 'clock', 'History'],
+    ['downloader', 'down', 'Downloads'], ['music', 'audio', 'Music'], ['playlist', 'playlist', 'Playlists'], ['privacy', 'lock', 'Private folder'],
+    ['settings', 'settings', 'Settings'], ['about', 'info', 'Help & About']];
+  $('#pane-me').innerHTML =
+    `<button class="profile" data-act="rename"><span class="avatar">${esc(nm.trim().charAt(0).toUpperCase() || 'U')}</span><span class="pinf"><b>${esc(nm)}</b><small>Tap to change your name</small></span>${ico('edit')}</button>
+     <div class="merows">${rows.map(r => `<button class="merow" data-to="${r[0]}">${ico(r[1])}<span>${r[2]}</span></button>`).join('')}</div>
+     <div class="mefoot"><svg class="s-logo"><use href="#i-logo"/></svg><b>R-Player</b><small>Version 1.0.0</small></div>`;
+}
+$('#pane-me').onclick = e => {
+  if (e.target.closest('[data-act="rename"]')) return askText('Your name', 'Name', getName(), n => { store.set('np_name', n); render(); });
+  const r = e.target.closest('[data-to]'); if (!r) return;
+  const t = r.dataset.to;
+  if (t === 'about') return aboutSheet();
+  if (t === 'downloader' || t === 'privacy') return go('video', t);
+  if (t === 'all') state.folder = null;
+  go(t);
+};
+
+function renderSettings() {
+  const sw = (k, icon, label, on) => `<button class="setrow" data-set="${k}">${ico(icon)}<span>${label}</span><i class="sw ${on ? 'on' : ''}"></i></button>`;
+  const val = (k, icon, label, v) => `<button class="setrow" data-st="${k}">${ico(icon)}<span>${label}</span><em>${v}</em><span class="chev">${ico('chev')}</span></button>`;
+  $('#pane-settings').innerHTML =
+    `<div class="setgrp">Playback</div>` +
+    sw('autoRotate', 'rotate', 'Auto Rotate', settings.autoRotate) +
+    sw('remember', 'clock', 'Remember Playback Position', settings.remember) +
+    sw('autoplay', 'playlist', 'Autoplay Next Video', AP.on) +
+    `<div class="setgrp">Library</div>` +
+    sw('keepLib', 'folder', 'Keep my videos &amp; music after reload', settings.keepLib !== false) +
+    val('saved', 'trash', 'Saved on this device', '…') +
+    `<div class="setgrp">Display</div>` +
+    val('theme', 'moon', 'Theme', 'Dark') + val('lang', 'globe', 'Language', 'English') +
+    val('view', 'grid', 'Video list style', state.view === 'grid' ? 'Grid' : 'List') +
+    `<div class="setgrp">Others</div>` +
+    val('cache', 'trash', 'Clear Cache', fmtSize(cacheBytes())) + val('policy', 'lock', 'Privacy Policy', '') + val('about', 'info', 'About', '');
+  libBytes().then(n => { const e = $('#pane-settings [data-st="saved"] em'); if (e) e.textContent = fmtSize(n); });
+}
+$('#pane-settings').onclick = e => {
+  const sw = e.target.closest('[data-set]');
+  if (sw) {
+    const k = sw.dataset.set;
+    if (k === 'autoplay') { AP.on = !AP.on; store.set('np_autoplay', AP.on ? '1' : '0'); } else { settings[k] = !settings[k]; saveSettings(); }
+    return renderSettings();
+  }
+  const a = e.target.closest('[data-st]')?.dataset.st; if (!a) return;
+  if (a === 'theme') toast('Dark is the only theme for now');
+  else if (a === 'lang') toast('English is the only language for now');
+  else if (a === 'view') { state.view = state.view === 'list' ? 'grid' : 'list'; saveUi(); renderSettings(); }
+  else if (a === 'cache') openSheet('Clear saved data?', [
+    { icon: 'trash', label: 'Clear resume positions, history and play counts', fn: () => clearWatchData() },
+    { label: 'Favorites, playlists and your PIN are kept.', note: true }, { icon: 'close', label: 'Cancel' }]);
+  else if (a === 'saved') openSheet('Delete saved library?', [
+    { icon: 'trash', label: 'Remove all saved videos and music from this app', fn: () => clearSaved().then(renderSettings) },
+    { label: 'Your original files on the phone are not touched.', note: true }, { icon: 'close', label: 'Cancel' }]);
+  else if (a === 'policy') policySheet();
+  else if (a === 'about') aboutSheet();
+};
+
+/* ================= Privacy ================= */
+async function hashPin(p) {
+  try {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('np:' + p));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  } catch { let h = 5381; for (const c of 'np:' + p) h = ((h << 5) + h + c.charCodeAt(0)) | 0; return 'x' + h; }
+}
+function renderPrivacy() {
+  const el = $('#pane-privacy'), pin = store.get('np_pin');
+  if (!pin) {
+    el.innerHTML = `<div class="lockbox"><div class="big-ic">${ico('lock')}</div><h3>Create a PIN</h3>
+      <p class="mut">Hide videos behind a 4–6 digit PIN.</p>
+      <input class="field pin" id="pin1" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off">
+      <input class="field pin" id="pin2" type="password" inputmode="numeric" maxlength="6" placeholder="Repeat" autocomplete="off">
+      <div class="btnrow" style="max-width:240px;margin:auto"><button class="btn" data-act="setpin">Save PIN</button></div></div>`;
+  } else if (!state.unlocked) {
+    el.innerHTML = `<div class="lockbox"><div class="big-ic">${ico('lock')}</div><h3>Private folder</h3>
+      <p class="mut">Enter your PIN to open.</p>
+      <input class="field pin" id="pinIn" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off">
+      <div class="btnrow" style="max-width:240px;margin:auto"><button class="btn" data-act="unlock">Unlock</button></div></div>`;
+  } else {
+    const items = sorted(lib.filter(v => v.priv));
+    el.innerHTML = `<div class="privhead"><b>${ico('lock')}</b><b style="flex:1;margin-left:10px">Private videos</b><button data-act="lock">Lock now</button></div>` +
+      (items.length ? items.map(it => vrow(it)).join('') : emptyHTML('lock', 'Nothing hidden yet', 'Open ⋮ on any video and choose “Move to Private”'));
+    hydrateThumbs(el);
+  }
+}
+$('#pane-privacy').onclick = async e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'setpin') {
+    const a = $('#pin1').value, b = $('#pin2').value;
+    if (!/^\d{4,6}$/.test(a)) return toast('PIN must be 4–6 digits');
+    if (a !== b) return toast('PINs do not match');
+    store.set('np_pin', await hashPin(a)); state.unlocked = true; toast('PIN saved'); return render();
+  }
+  if (act === 'unlock') {
+    const inp = $('#pinIn');
+    if (await hashPin(inp.value) === store.get('np_pin')) { state.unlocked = true; return render(); }
+    inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake'); inp.value = ''; return toast('Wrong PIN');
+  }
+  if (act === 'lock') { state.unlocked = false; return render(); }
+  onVideoClick(e);
+};
+
+/* ================= Downloader ================= */
+const tasks = [];
+function renderTasks() {
+  $('#dlList').innerHTML = tasks.map(t => `<div class="task">
+    <div class="tname">${esc(t.name)}</div>
+    <div class="bar ${t.pct == null && !t.done && !t.failed ? 'indet' : ''}"><i style="width:${t.pct ?? 0}%"></i></div>
+    <div class="tstat"><span>${esc(t.status)}</span>
+      ${t.done ? `<button data-save="${t.id}">Save to device</button>` : (!t.failed && !t.cancelled ? `<button data-cancel="${t.id}">Cancel</button>` : '')}
+    </div></div>`).join('');
+}
+$('#dlList').onclick = e => {
+  const c = e.target.closest('[data-cancel]'), s = e.target.closest('[data-save]');
+  if (c) tasks.find(t => t.id === c.dataset.cancel)?.ctrl.abort();
+  if (s) { const t = tasks.find(x => x.id === s.dataset.save), a = document.createElement('a'); a.href = t.blobUrl; a.download = t.name; a.click(); }
+};
+const nameFromUrl = u => { try { return decodeURIComponent(new URL(u).pathname.split('/').pop()) || 'video'; } catch { return 'video'; } };
+function validUrl() {
+  const u = $('#dlUrl').value.trim();
+  try { new URL(u); return u; } catch { toast('Please enter a valid link'); return null; }
+}
+$('#dlStream').onclick = () => {
+  const u = validUrl(); if (!u) return;
+  const it = addItem({ name: nameFromUrl(u).replace(/\.[^.]+$/, ''), src: u, folder: 'Streams', remote: true });
+  startQueue([{ k: 'v', it }], 0);
+};
+async function startDownload(url) {
+  const name = nameFromUrl(url), t = { id: uid(), name, pct: 0, status: 'Starting…', ctrl: new AbortController() };
+  tasks.unshift(t); renderTasks(); $('#dlUrl').value = '';
+  try {
+    const res = await fetch(url, { signal: t.ctrl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const total = +res.headers.get('content-length') || 0, type = res.headers.get('content-type') || 'video/mp4';
+    let blob;
+    if (res.body) {
+      const reader = res.body.getReader(), chunks = []; let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read(); if (done) break;
+        chunks.push(value); got += value.length;
+        t.pct = total ? got / total * 100 : null;
+        t.status = total ? `${fmtSize(got)} / ${fmtSize(total)}` : fmtSize(got);
+        renderTasks();
+      }
+      blob = new Blob(chunks, { type });
+    } else blob = await res.blob();
+    t.blobUrl = URL.createObjectURL(blob);
+    addItem({ _blob: blob, name: name.replace(/\.[^.]+$/, ''), src: t.blobUrl, folder: 'Downloads', size: blob.size });
+    t.pct = 100; t.done = true; t.status = 'Saved in Downloads folder';
+  } catch (err) {
+    if (err.name === 'AbortError') { t.cancelled = true; t.status = 'Cancelled'; }
+    else {
+      t.failed = true; t.status = 'Server blocks downloads (CORS). Added as a stream instead.';
+      if (!lib.some(x => x.src === url)) addItem({ name: name.replace(/\.[^.]+$/, ''), src: url, folder: 'Streams', remote: true });
+    }
+  }
+  renderTasks();
+}
+$('#dlGo').onclick = () => { const url = validUrl(); if (url) startDownload(url); };
+
+/* ================= Playlists ================= */
+let playlists = jget('np_playlists', []);
+const savePl = () => jset('np_playlists', playlists);
+const resolveKey = k => k[0] === 'a' ? audioLib.find(a => a.key === k) : lib.find(v => v.key === k);
+function newPlaylist(name) { const pl = { id: uid(), name, items: [] }; playlists.push(pl); savePl(); return pl; }
+function addToPlaylist(item) {
+  const key = item.key;
+  const items = playlists.map(pl => ({
+    icon: 'playlist', label: `${pl.name} (${pl.items.length})`, active: pl.items.includes(key),
+    fn: () => { if (!pl.items.includes(key)) pl.items.push(key); savePl(); toast('Added to ' + pl.name); }
+  }));
+  items.push({ icon: 'add', label: 'New playlist…', fn: () => askText('New playlist', 'Playlist name', '', name => {
+    const pl = newPlaylist(name); pl.items.push(key); savePl(); toast('Added to ' + pl.name); }) });
+  openSheet('Add to playlist', items);
+}
+const plEntries = pl => pl.items.map(k => ({ k: k[0], key: k, it: resolveKey(k) })).filter(e => e.it);
+
+function arow(a, o = {}) {
+  const playing = A.cur === a;
+  return `<div class="arow ${playing ? 'playing' : ''} ${playing && A.el.paused ? 'paused' : ''}" data-id="${a.id}" ${o.pi != null ? `data-pi="${o.pi}"` : ''}>
+    <div class="acover">${ico('audio')}<div class="eq"><i></i><i></i><i></i></div></div>
+    <div class="meta"><b>${esc(a.name)}</b><small>${esc(audioSub(a))}</small></div>
+    <button class="dots" ${o.rm ? `data-prm="${esc(o.rm)}"` : `data-amore="${a.id}"`} aria-label="More">${ico('more')}</button></div>`;
+}
+function renderPlaylist() {
+  const el = $('#pane-playlist');
+  if (state.plOpen) {
+    const pl = playlists.find(p => p.id === state.plOpen);
+    if (!pl) { state.plOpen = null; return renderPlaylist(); }
+    const ok = plEntries(pl), missing = pl.items.length - ok.length;
+    el.innerHTML = `<div class="plhead"><button class="backrow" data-act="plback">${ico('back')}<span>${esc(pl.name)}</span></button>
+      ${ok.length ? `<button class="btn sm" data-act="plplay">${ico('play')}Play all</button>` : ''}</div>` +
+      (ok.length ? ok.map((e, i) => e.k === 'v' ? vrow(e.it, { pi: i, rm: e.key }) : arow(e.it, { pi: i, rm: e.key })).join('')
+        : emptyHTML('playlist', 'This playlist is empty', 'Open ⋮ on a video or song and choose “Add to playlist”')) +
+      (missing ? `<p class="mut note">${missing} item${missing > 1 ? 's are' : ' is'} not loaded. Add those files again to see them.</p>` : '');
+    hydrateThumbs(el); return;
+  }
+  el.innerHTML = `<button class="newpl" data-act="plnew">${ico('add')}<span>New playlist</span></button>` +
+    (playlists.length ? playlists.map(pl => `<div class="frow" data-pl="${pl.id}">${ico('playlist')}
+      <div class="fmeta"><b>${esc(pl.name)}</b><small>${pl.items.length} item${pl.items.length === 1 ? '' : 's'}</small></div>
+      <button class="dots" data-plmore="${pl.id}" aria-label="More">${ico('more')}</button></div>`).join('')
+      : emptyHTML('playlist', 'No playlists yet', 'Create one, then add videos and songs to it'));
+}
+$('#pane-playlist').onclick = e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'plnew') return askText('New playlist', 'Playlist name', '', name => { newPlaylist(name); render(); });
+  if (act === 'plback') { state.plOpen = null; return render(); }
+  const pl = playlists.find(p => p.id === state.plOpen);
+  if (act === 'plplay' && pl) { const l = plEntries(pl); if (l.length) startQueue(l.map(x => ({ k: x.k, it: x.it })), 0); return; }
+  const rm = e.target.closest('[data-prm]');
+  if (rm && pl) { pl.items = pl.items.filter(k => k !== rm.dataset.prm); savePl(); toast('Removed from playlist'); return render(); }
+  const more = e.target.closest('[data-plmore]');
+  if (more) {
+    const p = playlists.find(x => x.id === more.dataset.plmore);
+    return openSheet(p.name, [
+      { icon: 'play', label: 'Play all', fn: () => { const l = plEntries(p); l.length ? startQueue(l.map(x => ({ k: x.k, it: x.it })), 0) : toast('Playlist is empty'); } },
+      { icon: 'add', label: 'Rename', fn: () => askText('Rename playlist', 'Playlist name', p.name, n => { p.name = n; savePl(); render(); }) },
+      { icon: 'trash', label: 'Delete playlist', fn: () => { playlists = playlists.filter(x => x !== p); savePl(); render(); } },
+    ]);
+  }
+  const open = e.target.closest('[data-pl]');
+  if (open) { state.plOpen = open.dataset.pl; return render(); }
+  const row = e.target.closest('[data-pi]');
+  if (row && pl) { const l = plEntries(pl); startQueue(l.map(x => ({ k: x.k, it: x.it })), +row.dataset.pi); }
+};
+
+/* ================= Queue (video + audio) ================= */
+const Q = { list: [], i: -1 };
+function startQueue(list, i) { Q.list = list; Q.i = i; playEntry(list[i]); }
+function playEntry(e) {
+  if (!e) return;
+  if (e.k === 'v') openPlayer(e.it);
+  else { if (!playerEl.hidden) closePlayer(); playAudio(e.it); }
+}
+function queueStep(d, wrap) {
+  if (!Q.list.length) return false;
+  let j = Q.i + d;
+  if (j < 0 || j >= Q.list.length) { if (!wrap) return false; j = (j + Q.list.length) % Q.list.length; }
+  Q.i = j; playEntry(Q.list[j]); return true;
+}
+
+/* ================= Player ================= */
+const P = {
+  v: $('#v'), cur: null, locked: false, bg: false, userPaused: false, speed: 1,
+  fitIdx: 0, hideTimer: null, seeking: false, sheetOpen: false, lastSave: 0,
+};
+const v = P.v, playerEl = $('#player'), ctrl = $('#ctrl'), stage = $('#stage');
+const seekEl = $('#seek'), prog = $('.prog', seekEl), buf = $('.buf', seekEl), knob = $('.knob', seekEl), tip = $('#tip');
+const FITS = [['fit', 'Fit to screen'], ['fill', 'Fill (crop)'], ['stretch', 'Stretch'], ['16:9', '16:9'], ['4:3', '4:3'], ['21:9', '21:9']];
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
+
+setIco($('#btnPlay'), 'play'); setIco($('#btnMute'), 'vol'); setIco($('#btnFS'), 'fs');
+setIco($('#miniPlay'), 'pause'); setIco($('#aPlay'), 'play');
+
+function openPlayer(item) {
+  closeAudio();                       // video and audio never play together
+  P.cur = item; P.userPaused = false;
+  setMeta(item, { t: Date.now(), c: (getMeta(item).c || 0) + 1 });   // history + play count
+  $$('track', v).forEach(t => { URL.revokeObjectURL(t.src); t.remove(); });
+  if (item.remote) v.crossOrigin = 'anonymous'; else v.removeAttribute('crossorigin');
+  v.src = item.src;
+  v.defaultPlaybackRate = v.playbackRate = P.speed; setBoost(1);
+  $('#ptitle').textContent = item.name;
+  if (playerEl.hidden) history.pushState({ player: 1 }, '');
+  playerEl.hidden = false; $('#mini').hidden = true;
+  setLocked(false); showCtrl(); update(); updateCCState();
+  renderPanel(); syncPanel();
+  setupMediaSession(item);
+  v.play().catch(() => {});
+}
+function closePlayer() {
+  if (playerEl.hidden) return;
+  savePos(true);
+  if (P.full) { setFull(false); try { if (document.fullscreenElement) document.exitFullscreen(); screen.orientation.unlock(); } catch {} }
+  playerEl.hidden = true; closeSheet();
+  if (P.bg && !v.paused) toast('Playing in background'); else v.pause();
+  updateMini(); render();
+}
+function stopPlayback() { v.pause(); v.removeAttribute('src'); v.load(); P.cur = null; updateMini(); }
+$('#pBack').onclick = () => { if (P.full) return toggleFS(); (history.state && history.state.player) ? history.back() : closePlayer(); };
+window.addEventListener('popstate', () => {
+  if (!playerEl.hidden) return closePlayer();
+  if (state.sec !== 'dash') { state.folder = null; state.plOpen = null; go('dash', undefined, false); }
+});
+
+function updateMini() {
+  const show = playerEl.hidden && P.cur && v.getAttribute('src') && P.bg;
+  $('#mini').hidden = !show;
+  if (show) { $('#miniTitle').textContent = P.cur.name; setIco($('#miniPlay'), v.paused ? 'play' : 'pause'); }
+}
+$('#mini').onclick = e => { if (!e.target.closest('button') && P.cur) openPlayerKeep(P.cur); };
+function openPlayerKeep(item) {          // reopen UI without reloading the source
+  playerEl.hidden = false; $('#mini').hidden = true;
+  $('#ptitle').textContent = item.name; showCtrl(); update();
+  history.pushState({ player: 1 }, '');
+}
+$('#miniPlay').onclick = () => { v.paused ? (P.userPaused = false, v.play()) : (P.userPaused = true, v.pause()); };
+$('#miniStop').onclick = stopPlayback;
+
+/* ---- progress ---- */
+function update() {
+  const d = v.duration || 0, c = v.currentTime || 0, p = d && isFinite(d) ? c / d : 0;
+  if (!P.seeking) { prog.style.width = knob.style.left = p * 100 + '%'; $('#tCur').textContent = fmt(c); }
+  $('#tDur').textContent = fmt(d);
+  if (v.buffered.length && d) buf.style.width = Math.min(100, v.buffered.end(v.buffered.length - 1) / d * 100) + '%';
+}
+let raf;
+function tick() { update(); if (!v.paused && !playerEl.hidden) raf = requestAnimationFrame(tick); }
+function savePos(force) {
+  if (!P.cur || !v.duration || !isFinite(v.duration)) return;
+  const now = Date.now(); if (!force && now - P.lastSave < 3000) return; P.lastSave = now;
+  const p = (settings.remember && v.currentTime > 5 && v.currentTime < v.duration - 8) ? v.currentTime : 0;
+  P.cur.dur = v.duration;
+  setMeta(P.cur, force ? { p, d: v.duration, t: now } : { p, d: v.duration });
+}
+
+/* ---- video events ---- */
+v.addEventListener('loadedmetadata', () => {
+  const saved = P.cur && settings.remember ? (getMeta(P.cur).p || 0) : 0;
+  if (saved > 5 && saved < v.duration - 8) { v.currentTime = saved; toast('Resumed from ' + fmt(saved)); }
+  v.playbackRate = P.speed; update();
+  if (P.cur && v.videoHeight) { P.cur.h = v.videoHeight; P.cur.dur = v.duration; setMeta(P.cur, { h: v.videoHeight, d: v.duration }); }
+  renderPanel();
+});
+v.addEventListener('play',  () => { setIco($('#btnPlay'), 'pause'); cancelAnimationFrame(raf); tick(); showCtrl(); updateMini(); if (navigator.mediaSession) navigator.mediaSession.playbackState = 'playing'; });
+v.addEventListener('pause', () => {
+  setIco($('#btnPlay'), 'play'); showCtrl(); updateMini(); savePos(true);
+  if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused';
+  if (P.bg && document.hidden && !P.userPaused && !v.ended) setTimeout(() => v.play().catch(() => {}), 120);
+});
+v.addEventListener('ended', () => {
+  setIco($('#btnPlay'), 'play'); if (P.cur) setMeta(P.cur, { p: 0 });
+  if (!(AP.on && queueStep(1, false))) showCtrl();
+});
+v.addEventListener('timeupdate', () => { if (!P.seeking) update(); savePos(false); });
+v.addEventListener('progress', update);
+v.addEventListener('durationchange', update);
+v.addEventListener('waiting', () => $('#spinner').hidden = false);
+['canplay', 'playing', 'seeked'].forEach(ev => v.addEventListener(ev, () => $('#spinner').hidden = true));
+v.addEventListener('error', () => {
+  $('#spinner').hidden = true;
+  if (!v.getAttribute('src')) return;
+  const c = v.error && v.error.code;
+  toast(c === 3 ? 'Video data is damaged or uses a format this browser cannot decode'
+      : c === 4 ? 'This format or codec is not supported by your browser (try another file or a Chrome update)'
+      : c === 2 ? 'Network error while loading this video'
+      : 'Cannot play this file or link');
+});
+
+/* ---- sound / picture diagnostics: tells the user when a file plays silent or has no picture ---- */
+let diagT, diagSrc = '';
+function diagnose() {
+  clearTimeout(diagT);
+  const src = v.currentSrc; if (!src || src === diagSrc) return;
+  diagT = setTimeout(() => {
+    if (v.currentSrc !== src || v.paused || !P.cur) return;
+    diagSrc = src;
+    if (v.videoWidth === 0 && v.readyState >= 2) { toast('No picture: the video codec (e.g. HEVC) is not supported here. Only sound plays.'); return; }
+    if (v.muted || v.volume === 0) return;
+    let none = false;
+    if ('webkitAudioDecodedByteCount' in v) none = v.currentTime > 1.2 && v.webkitAudioDecodedByteCount === 0;
+    else if ('mozHasAudio' in v) none = v.mozHasAudio === false;
+    else if (v.audioTracks) none = v.audioTracks.length === 0;
+    if (none) toast('No sound detected: the file has no audio, or its audio format (AC3/DTS/EAC3) is not supported by the browser');
+  }, 2200);
+}
+v.addEventListener('playing', diagnose);
+
+/* ---- play / skip ---- */
+function togglePlay() {
+  if (v.paused) { P.userPaused = false; if (v.ended) v.currentTime = 0; v.play().catch(() => {}); }
+  else { P.userPaused = true; v.pause(); }
+}
+function skip(s) { v.currentTime = Math.max(0, Math.min(v.duration || 1e9, v.currentTime + s)); update(); }
+$('#btnPlay').onclick = togglePlay;
+$('#btnRew').onclick = () => skip(-10);
+$('#btnFwd').onclick = () => skip(10);
+
+/* ---- controls visibility ---- */
+function showCtrl() {
+  if (P.locked) return;
+  ctrl.classList.remove('hidden'); clearTimeout(P.hideTimer);
+  if (!v.paused && !P.sheetOpen) P.hideTimer = setTimeout(() => ctrl.classList.add('hidden'), 3500);
+}
+ctrl.addEventListener('click', () => { if (!ctrl.classList.contains('hidden')) showCtrl(); }, true);
+
+/* ---- gestures: tap = toggle UI, double tap sides = ±10s, double tap centre = play/pause ---- */
+let lastTap = 0, lastZone = 9, tapTimer;
+$('#gesture').addEventListener('click', e => {
+  if (P.locked) return showUnlock();
+  const r = e.currentTarget.getBoundingClientRect(), x = e.clientX - r.left;
+  const zone = x < r.width / 3 ? -1 : x > r.width * 2 / 3 ? 1 : 0, now = Date.now();
+  if (now - lastTap < 300 && zone === lastZone) {
+    clearTimeout(tapTimer); lastTap = 0;
+    if (zone === 0) togglePlay(); else { skip(zone * 10); const fx = $(zone < 0 ? '#fxL' : '#fxR'); fx.classList.remove('go'); void fx.offsetWidth; fx.classList.add('go'); }
+  } else {
+    lastTap = now; lastZone = zone; clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => ctrl.classList.contains('hidden') ? showCtrl() : (ctrl.classList.add('hidden'), clearTimeout(P.hideTimer)), 260);
+  }
+});
+
+/* ---- volume boost above 100% (Web Audio gain + soft limiter), reset to 100% for every new video ---- */
+P.boost = 1;
+function setBoost(b) {
+  if (b > 1.001 && !P.gainNode) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { toast('Volume boost is not supported here'); return false; }
+    try {
+      const ctx = new AC(), src = ctx.createMediaElementSource(v), g = ctx.createGain(), c = ctx.createDynamicsCompressor();
+      c.threshold.value = -8; c.knee.value = 12; c.ratio.value = 6; c.attack.value = .003; c.release.value = .2;
+      src.connect(g); g.connect(c); c.connect(ctx.destination);
+      P.actx = ctx; P.gainNode = g;
+    } catch (e) { toast('Volume boost is not supported for this video'); return false; }
+  }
+  if (P.gainNode) { P.gainNode.gain.value = Math.max(1, b); if (P.actx.state === 'suspended') P.actx.resume().catch(() => {}); }
+  P.boost = Math.max(1, b); return true;
+}
+
+/* ---- swipe gestures: right side = volume, left side = brightness, press and hold = 2x speed ---- */
+const gEl = $('#gesture'), gind = $('#gind');
+P.bright = Math.min(1.5, Math.max(.3, +store.get('np_bright') || 1));
+const applyBright = () => { v.style.filter = Math.abs(P.bright - 1) < .01 ? '' : 'brightness(' + P.bright + ')'; };
+applyBright();
+let gTimer, G = null, gUsed = false;
+function gShow(icon, txt, frac) {
+  $('#gindIc').innerHTML = icon ? ico(icon) : ''; $('#gindTxt').textContent = txt;
+  const bar = $('#gindBar'); bar.style.display = frac == null ? 'none' : '';
+  if (frac != null) bar.firstElementChild.style.width = Math.round(frac * 100) + '%';
+  gind.classList.add('show'); clearTimeout(gTimer);
+}
+const gHide = ms => { clearTimeout(gTimer); gTimer = setTimeout(() => gind.classList.remove('show'), ms); };
+gEl.addEventListener('contextmenu', e => e.preventDefault());
+gEl.addEventListener('pointerdown', e => {
+  if (P.locked || G || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const r = gEl.getBoundingClientRect();
+  G = { id: e.pointerId, x: e.clientX, y: e.clientY, h: r.height, side: e.clientX - r.left < r.width / 2 ? 'L' : 'R', mode: null, vol: v.muted ? 0 : v.volume * (P.boost || 1), bri: P.bright };
+  G.timer = setTimeout(() => {
+    if (!G || G.mode || v.paused) return;
+    G.mode = 'speed'; v.playbackRate = 2; gShow(null, '\u25B6\u25B6  2x speed', null);
+    try { gEl.setPointerCapture(G.id); } catch {} if (navigator.vibrate) navigator.vibrate(15);
+  }, 450);
+});
+gEl.addEventListener('pointermove', e => {
+  if (!G || e.pointerId !== G.id) return;
+  const dx = e.clientX - G.x, dy = e.clientY - G.y;
+  if (!G.mode) {
+    if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx) * 1.4) {
+      G.mode = G.side === 'R' ? 'vol' : 'bri'; clearTimeout(G.timer);
+      try { gEl.setPointerCapture(G.id); } catch {}
+    } else { if (Math.abs(dx) > 10 || Math.abs(dy) > 10) clearTimeout(G.timer); return; }
+  }
+  if (G.mode === 'vol') {
+    let val = Math.min(2, Math.max(0, G.vol - dy / (G.h * .85)));
+    if (val > 1 && !setBoost(val)) val = 1;           // boost unavailable -> stay at 100%
+    if (val <= 1) setBoost(1);
+    v.volume = Math.min(1, val); v.muted = val === 0;
+    gind.classList.toggle('boost', val > 1);
+    setIco($('#btnMute'), v.muted ? 'mute' : 'vol'); $('#btnMute').classList.toggle('on', v.muted);
+    gShow(v.muted ? 'mute' : 'vol', Math.round(val * 100) + '%' + (val > 1 ? ' boost' : ''), val / 2);
+  } else if (G.mode === 'bri') {
+    P.bright = Math.min(1.5, Math.max(.3, G.bri - dy / (G.h * .85) * 1.2)); applyBright();
+    gShow('sun', Math.round(P.bright * 100) + '%', (P.bright - .3) / 1.2);
+  }
+});
+function gEnd(e) {
+  if (!G || e.pointerId !== G.id) return;
+  clearTimeout(G.timer);
+  if (G.mode) {
+    gUsed = true; setTimeout(() => gUsed = false, 350);
+    if (G.mode === 'speed') v.playbackRate = P.speed;
+    if (G.mode === 'bri') store.set('np_bright', String(P.bright));
+    if (G.mode === 'vol') { v.defaultMuted = false; try { syncPanel(); } catch {} }
+    gHide(G.mode === 'speed' ? 120 : 650); if (G.mode !== 'vol') gind.classList.remove('boost');
+  }
+  G = null;
+}
+gEl.addEventListener('pointerup', gEnd); gEl.addEventListener('pointercancel', gEnd);
+gEl.addEventListener('click', e => { if (gUsed) { e.stopImmediatePropagation(); e.preventDefault(); gUsed = false; } }, true);
+
+/* ---- seek bar ---- */
+const seekPct = e => { const r = seekEl.getBoundingClientRect(); return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); };
+let seekThrottle = 0;
+function seekPreview(e, commit) {
+  const p = seekPct(e), t = p * (v.duration || 0);
+  prog.style.width = knob.style.left = tip.style.left = p * 100 + '%';
+  tip.textContent = fmt(t); $('#tCur').textContent = fmt(t);
+  const now = Date.now();
+  if (commit || now - seekThrottle > 150) { seekThrottle = now; if (isFinite(v.duration)) v.currentTime = t; }
+}
+seekEl.addEventListener('pointerdown', e => {
+  if (!isFinite(v.duration)) return;
+  seekEl.setPointerCapture(e.pointerId); P.seeking = true; seekEl.classList.add('drag'); clearTimeout(P.hideTimer); seekPreview(e);
+});
+seekEl.addEventListener('pointermove', e => { if (P.seeking) seekPreview(e); });
+const endSeek = e => { if (!P.seeking) return; seekPreview(e, true); P.seeking = false; seekEl.classList.remove('drag'); showCtrl(); update(); };
+seekEl.addEventListener('pointerup', endSeek);
+seekEl.addEventListener('pointercancel', endSeek);
+
+/* ---- lock ---- */
+let unlockTimer;
+function setLocked(on) {
+  P.locked = on;
+  if (on) { ctrl.classList.add('hidden'); clearTimeout(P.hideTimer); showUnlock(); toast('Screen locked'); }
+  else { $('#btnUnlock').classList.remove('show'); }
+}
+function showUnlock() {
+  const b = $('#btnUnlock'); b.classList.add('show');
+  clearTimeout(unlockTimer); unlockTimer = setTimeout(() => b.classList.remove('show'), 2500);
+}
+$('#btnLock').onclick = () => setLocked(true);
+$('#btnUnlock').onclick = () => { setLocked(false); showCtrl(); toast('Screen unlocked'); };
+
+/* ---- mute / background audio ---- */
+$('#btnMute').onclick = () => {
+  v.muted = !v.muted; setIco($('#btnMute'), v.muted ? 'mute' : 'vol'); $('#btnMute').classList.toggle('on', v.muted);
+  toast(v.muted ? 'Muted' : 'Sound on');
+};
+$('#btnBg').onclick = () => {
+  P.bg = !P.bg; $('#btnBg').classList.toggle('on', P.bg);
+  toast(P.bg ? 'Background audio ON: keeps playing when you leave' : 'Background audio OFF');
+};
+function setupMediaSession(item) {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: item.name, artist: 'R-Player', album: item.folder });
+    const h = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch {} };
+    h('play',  () => { P.userPaused = false; v.play(); });
+    h('pause', () => { P.userPaused = true; v.pause(); });
+    h('seekbackward', () => skip(-10));
+    h('seekforward',  () => skip(10));
+    h('seekto', d => { v.currentTime = d.seekTime; });
+  } catch {}
+}
+
+/* ---- speed ---- */
+function setSpeed(s) { P.speed = s; v.defaultPlaybackRate = v.playbackRate = s; $('#btnSpeed').textContent = s + 'x'; $('#btnSpeed').classList.toggle('on', s !== 1); }
+$('#btnSpeed').onclick = () => openSheet('Playback speed', SPEEDS.map(s => ({ label: s === 1 ? '1x (Normal)' : s + 'x', active: s === P.speed, fn: () => setSpeed(s) })));
+
+/* ---- aspect ratio ---- */
+$('#btnAspect').onclick = () => {
+  P.fitIdx = (P.fitIdx + 1) % FITS.length;
+  stage.dataset.fit = FITS[P.fitIdx][0]; toast(FITS[P.fitIdx][1]);
+  $('#btnAspect').classList.toggle('on', P.fitIdx !== 0);
+};
+
+/* ---- fullscreen (CSS full-screen + real Fullscreen API when the browser allows it) ---- */
+function setFull(on) {
+  P.full = on; $('#vbox').classList.toggle('full', on); playerEl.classList.toggle('isfull', on);
+  setIco($('#btnFS'), on ? 'fsx' : 'fs'); showCtrl();
+}
+async function toggleFS() {
+  const on = !P.full, de = document.documentElement;
+  setFull(on);
+  try {
+    if (on) {
+      if (de.requestFullscreen) await de.requestFullscreen(); else if (de.webkitRequestFullscreen) de.webkitRequestFullscreen();
+      if (settings.autoRotate && v.videoWidth >= v.videoHeight) { try { await screen.orientation.lock('landscape'); } catch {} }
+    } else {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      try { screen.orientation.unlock(); } catch {}
+    }
+  } catch {}
+}
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && P.full) setFull(false); });
+$('#btnFS').onclick = toggleFS;
+/* Auto Rotate: turning the phone sideways/upright switches full-screen on/off */
+const landMQ = matchMedia('(orientation: landscape)');
+if (landMQ.addEventListener) landMQ.addEventListener('change', e => {
+  if (playerEl.hidden || !settings.autoRotate) return;
+  if (e.matches && !P.full) setFull(true);
+  else if (!e.matches && P.full) { setFull(false); try { if (document.fullscreenElement) document.exitFullscreen(); } catch {} }
+});
+
+/* ---- player info panel (title, actions, next video) ---- */
+const AP = { on: store.get('np_autoplay') !== '0' };
+function renderPanel() {
+  const it = P.cur; if (!it) return;
+  $('#pTitle2').textContent = it.name;
+  const parts = [sizeOf(it), extOfItem(it)]; if (heightOf(it) >= 720) parts.push(resLabel(it));
+  $('#pMeta').textContent = parts.join(' • ');
+  syncPanel();
+  const nx = Q.list[Q.i + 1], body = $('#nextBody');
+  if (nx) {
+    const n = nx.it;
+    body.innerHTML = (nx.k === 'v' ? thumbHTML(n, 'dur') : `<div class="acover">${ico('audio')}</div>`) +
+      `<div class="minfo"><b>${esc(n.name)}</b><small>${esc(nx.k === 'v' ? metaText(n, 'ds') : (n.dur ? fmtD(n.dur) + ' • ' : '') + fmtSize(n.size || 0))}</small></div><span class="nplay">${ico('play')}</span>`;
+    if (nx.k === 'v') hydrateThumbs(body);
+  } else body.innerHTML = '<div class="nonext">This is the last video in the list.</div>';
+}
+function syncPanel() {
+  const it = P.cur, fav = it && isFav(it);
+  $('#btnLike').classList.toggle('liked', !!fav);
+  $('#btnLike .i2').innerHTML = ico(fav ? 'heart' : 'heart-o');
+  $('#qMute .i2').innerHTML = ico(v.muted ? 'mute' : 'vol');
+  $('#qMute').classList.toggle('on', v.muted);
+  $('#qBg').classList.toggle('on', P.bg);
+  $('#qAspect').classList.toggle('on', P.fitIdx !== 0);
+  $('#aSpeed').classList.toggle('on', P.speed !== 1);
+  $('#aSub').classList.toggle('on', [...v.textTracks].some(t => t.mode === 'showing'));
+  $('#apToggle').classList.toggle('on', AP.on);
+}
+$('#btnLike').onclick = () => { if (!P.cur) return; toggleFav(P.cur); syncPanel(); toast(isFav(P.cur) ? 'Added to favorites' : 'Removed from favorites'); };
+$('#aDl').onclick = () => {
+  const it = P.cur; if (!it) return;
+  if (it.remote && /^https?:/.test(it.src)) { startDownload(it.src); toast('Download started – see Downloader'); }
+  else toast('This video is already on your device');
+};
+$('#aSpeed').onclick = () => $('#btnSpeed').click();
+$('#aAudio').onclick = () => $('#btnAT').click();
+$('#aSub').onclick = () => $('#btnCC').click();
+[['qLock', 'btnLock'], ['qMute', 'btnMute'], ['qBg', 'btnBg'], ['qAspect', 'btnAspect'], ['qShot', 'btnShot']].forEach(([a, b]) =>
+  $('#' + a).onclick = () => { $('#' + b).click(); syncPanel(); });
+$('#btnPMenu').onclick = () => openSheet('Player', [
+  { icon: 'speed', label: 'Playback speed', fn: () => $('#btnSpeed').click() },
+  { icon: 'audio', label: 'Audio track', fn: () => $('#btnAT').click() },
+  { icon: 'cam', label: 'Screenshot', fn: () => $('#btnShot').click() },
+  { icon: 'aspect', label: 'Aspect ratio', fn: () => { $('#btnAspect').click(); syncPanel(); } },
+  { icon: 'phones', label: P.bg ? 'Background audio: on' : 'Background audio: off', fn: () => { $('#btnBg').click(); syncPanel(); } },
+  { icon: v.muted ? 'mute' : 'vol', label: v.muted ? 'Unmute' : 'Mute', fn: () => { $('#btnMute').click(); syncPanel(); } },
+  { icon: 'lock', label: 'Lock screen', fn: () => $('#btnLock').click() },
+]);
+$('#apToggle').onclick = () => { AP.on = !AP.on; store.set('np_autoplay', AP.on ? '1' : '0'); syncPanel(); toast(AP.on ? 'Autoplay on' : 'Autoplay off'); };
+$('#nextBody').onclick = () => { if (Q.list[Q.i + 1]) queueStep(1, false); };
+$('#btnNext').onclick = () => { if (!queueStep(1, false)) toast('No next video'); };
+$('#btnPrev').onclick = () => { if (v.currentTime > 3 || !queueStep(-1, false)) { v.currentTime = 0; update(); } };
+
+/* ---- screenshot ---- */
+$('#btnShot').onclick = () => {
+  if (!v.videoWidth) return toast('Nothing to capture yet');
+  const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+  try {
+    c.getContext('2d').drawImage(v, 0, 0);
+    c.toBlob(b => {
+      if (!b) return toast('Capture failed');
+      const a = document.createElement('a'), name = (P.cur?.name || 'video').replace(/[^\w\-]+/g, '_');
+      a.href = URL.createObjectURL(b); a.download = `${name}_${fmt(v.currentTime).replace(/:/g, '-')}.png`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+      toast('Screenshot saved');
+    }, 'image/png');
+  } catch { toast('This server does not allow screenshots (CORS). Local files work.'); }
+};
+
+/* ---- subtitles ---- */
+const srt2vtt = s => 'WEBVTT\n\n' + s.replace(/\r+/g, '').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+function selectSub(track) {
+  [...v.textTracks].forEach(t => t.mode = t === track ? 'showing' : 'disabled');
+  updateCCState();
+}
+function updateCCState() { $('#btnCC').classList.toggle('on', [...v.textTracks].some(t => t.mode === 'showing')); }
+$('#btnCC').onclick = () => {
+  const tracks = [...v.textTracks].filter(t => t.kind === 'subtitles' || t.kind === 'captions');
+  const items = [{ label: 'Off', active: !tracks.some(t => t.mode === 'showing'), fn: () => selectSub(null) }];
+  tracks.forEach((t, i) => items.push({ label: t.label || t.language || 'Track ' + (i + 1), active: t.mode === 'showing', fn: () => selectSub(t) }));
+  items.push({ icon: 'cc', label: 'Load subtitle file (.srt / .vtt)…', fn: () => $('#subPicker').click() });
+  openSheet('Subtitles', items);
+};
+$('#subPicker').onchange = e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    let txt = String(rd.result); if (!/^\uFEFF?WEBVTT/.test(txt)) txt = srt2vtt(txt);
+    const tr = document.createElement('track');
+    tr.kind = 'subtitles'; tr.label = f.name.replace(/\.[^.]+$/, ''); tr.srclang = 'und';
+    tr.src = URL.createObjectURL(new Blob([txt], { type: 'text/vtt' }));
+    v.appendChild(tr);
+    setTimeout(() => { selectSub(tr.track); toast('Subtitles on'); }, 60);
+  };
+  rd.readAsText(f);
+};
+
+/* ---- audio tracks ---- */
+$('#btnAT').onclick = () => {
+  const at = v.audioTracks;
+  if (at && at.length > 1) {
+    openSheet('Audio track', [...at].map((t, i) => ({
+      label: t.label || t.language || 'Track ' + (i + 1), active: t.enabled,
+      fn: () => { [...at].forEach((x, j) => x.enabled = j === i); toast('Audio: ' + (t.label || t.language || 'Track ' + (i + 1))); }
+    })));
+  } else openSheet('Audio track', [
+    { label: 'Default audio', active: true },
+    { label: 'Only one audio track found. Some browsers (e.g. Chrome) hide extra tracks from web pages.', note: true },
+  ]);
+};
+
+/* ---- keyboard shortcuts (desktop) ---- */
+document.addEventListener('keydown', e => {
+  if (playerEl.hidden || /INPUT|TEXTAREA/.test(e.target.tagName) || P.locked) return;
+  const k = e.key;
+  if (k === ' ' || k === 'k') { e.preventDefault(); togglePlay(); }
+  else if (k === 'ArrowRight') skip(10);
+  else if (k === 'ArrowLeft') skip(-10);
+  else if (k === 'ArrowUp') { v.volume = Math.min(1, v.volume + .1); toast('Volume ' + Math.round(v.volume * 100) + '%'); }
+  else if (k === 'ArrowDown') { v.volume = Math.max(0, v.volume - .1); toast('Volume ' + Math.round(v.volume * 100) + '%'); }
+  else if (k === 'm') $('#btnMute').click();
+  else if (k === 'f') toggleFS();
+  else if (k === 'Escape' && !P.full) $('#pBack').click();
+  showCtrl();
+});
+
+/* ================= Music / Audio ================= */
+const A = { el: $('#a'), cur: null };
+
+function renderMusic() {
+  if (state.sec !== 'music') return;
+  const el = $('#pane-music'), items = audioVisible();
+  if (!audioLib.length) { el.innerHTML = emptyHTML('audio', 'No music yet', 'Add MP3 and other audio files, or a whole folder', true); return; }
+  el.innerHTML = summaryHTML(items.length, items.length === 1 ? 'song' : 'songs', items.reduce((s, a) => s + (a.size || 0), 0), false) +
+    (items.length ? items.map(a => arow(a)).join('') : emptyHTML('search', 'No songs match your search', ''));
+}
+$('#pane-music').onclick = e => {
+  const act = e.target.closest('[data-act]')?.dataset.act; if (act) return doAct(act);
+  const more = e.target.closest('[data-amore]');
+  if (more) { e.stopPropagation(); return audioMenu(audioLib.find(x => x.id === more.dataset.amore)); }
+  const row = e.target.closest('.arow'); if (!row) return;
+  const item = audioLib.find(x => x.id === row.dataset.id);
+  if (A.cur === item) return toggleAudio();
+  const list = audioVisible();
+  startQueue(list.map(x => ({ k: 'a', it: x })), list.indexOf(item));
+};
+function audioMenu(a) {
+  openSheet(a.name, [
+    { icon: 'play', label: 'Play', fn: () => startQueue([{ k: 'a', it: a }], 0) },
+    { icon: 'playlist', label: 'Add to playlist', fn: () => addToPlaylist(a) },
+    { icon: 'trash', label: 'Remove from list', fn: () => removeAudio(a.id) },
+  ]);
+}
+
+function playAudio(item) {
+  if (P.cur) stopPlayback();
+  A.cur = item; A.el.src = item.src;
+  A.el.play().catch(() => toast('Cannot play this audio file'));
+  setupAudioSession(item); updateAmini(); renderMusic();
+}
+function toggleAudio() { if (A.cur) A.el.paused ? A.el.play() : A.el.pause(); }
+function stepAudio(d) {
+  if (!A.cur) return;
+  if (d < 0 && A.el.currentTime > 3) { A.el.currentTime = 0; return; }   // restart track first
+  if (!queueStep(d, true)) { A.el.currentTime = 0; }
+}
+function closeAudio() {
+  if (!A.cur) return;
+  A.el.pause(); A.el.removeAttribute('src'); A.el.load(); A.cur = null;
+  if ('mediaSession' in navigator) ['previoustrack', 'nexttrack'].forEach(a => { try { navigator.mediaSession.setActionHandler(a, null); } catch {} });
+  updateAmini(); renderMusic();
+}
+function removeAudio(id) {
+  const i = audioLib.findIndex(a => a.id === id); if (i < 0) return;
+  if (A.cur === audioLib[i]) closeAudio();
+  dropSaved(audioLib[i]); URL.revokeObjectURL(audioLib[i].src); audioLib.splice(i, 1); renderMusic();
+}
+
+function updateAmini() {
+  const show = !!A.cur;
+  $('#amini').hidden = !show; document.body.classList.toggle('has-amini', show);
+  if (show) $('#aTitle').textContent = A.cur.name;
+  setIco($('#aPlay'), A.el.paused ? 'play' : 'pause');
+  $$('.arow.playing').forEach(r => r.classList.toggle('paused', A.el.paused));
+}
+function updateAminiProgress() {
+  const d = A.el.duration || 0, c = A.el.currentTime || 0;
+  $('#aprog').style.width = (d && isFinite(d) ? c / d * 100 : 0) + '%';
+  $('#aSub').textContent = fmt(c) + ' / ' + fmt(d);
+}
+['play', 'pause'].forEach(ev => A.el.addEventListener(ev, updateAmini));
+A.el.addEventListener('timeupdate', updateAminiProgress);
+A.el.addEventListener('loadedmetadata', updateAminiProgress);
+A.el.addEventListener('ended', () => { if (!queueStep(1, false)) { A.el.currentTime = 0; updateAmini(); } });
+A.el.addEventListener('error', () => { if (A.el.getAttribute('src')) toast('Cannot play this audio file'); });
+
+$('#aPlay').onclick = toggleAudio;
+$('#aPrev').onclick = () => stepAudio(-1);
+$('#aNext').onclick = () => stepAudio(1);
+$('#aClose').onclick = closeAudio;
+$('#aInfo').onclick = () => go('music');
+
+function setupAudioSession(it) {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: it.name, artist: 'R-Player', album: it.folder || 'Music' });
+    const h = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch {} };
+    h('play', () => A.el.play()); h('pause', () => A.el.pause());
+    h('previoustrack', () => stepAudio(-1)); h('nexttrack', () => stepAudio(1));
+    h('seekbackward', () => { A.el.currentTime = Math.max(0, A.el.currentTime - 10); });
+    h('seekforward',  () => { A.el.currentTime = Math.min(A.el.duration || 1e9, A.el.currentTime + 10); });
+    h('seekto', d => { A.el.currentTime = d.seekTime; });
+  } catch {}
+}
+
+/* ================= Boot ================= */
+render(); renderTasks(); restoreLib();
+const splash = $('#splash');
+const hideSplash = () => { splash.classList.add('out'); setTimeout(() => splash.remove(), 700); };
+splash.onclick = hideSplash; setTimeout(hideSplash, 1700);
+})();
+</script>
+</body>
+</html>
